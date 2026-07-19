@@ -1,0 +1,11 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const html = fs.readFileSync('/Users/zhangbai/Library/Application Support/Open Design/namespaces/release-stable/data/projects/76e284b0-af2c-40f2-bb57-f3b5f6037737/pdb_editor_workbench.html', 'utf8');
+assert.match(html, /function rebuildViewer\(\{ fit = true \} = \{\}\)/);
+assert.match(html, /function refreshViewerStyle\(\{ render = true \} = \{\}\)/);
+assert.match(html, /refreshViewerStyle\(\{ render: false \}\);[\s\S]*?if \(fit\) state\.viewer\.zoomTo\(\);[\s\S]*?state\.viewer\.render\(\);/);
+assert.match(html, /if \(render\) state\.viewer\.render\(\);/);
+assert.match(html, /function updateSelection[\s\S]*?refreshViewerStyle\(\);[\s\S]*?refresh\(\);/);
+assert.doesNotMatch(html.match(/function updateSelection[\s\S]*?\n  \}/)?.[0] || '', /rebuildViewer\(|zoomTo\(|clear\(|addModel\(/);
+assert.match(html, /selectedAtoms\.forEach\(atom => state\.viewer\.addStyle\([\s\S]*?radius: 0\.30, color: '#60A5FA'[\s\S]*?scale: 0\.34, color: '#60A5FA'/);
+console.log('PASS: selection refreshes high-contrast style without resetting the camera.');

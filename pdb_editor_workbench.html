@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PDB 文件重新编辑工具</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+    :root { color-scheme: dark; --ink:#e9efe6; --muted:#98a69e; --dimmer:#627168; --line:#26352f; --panel:#101a17; --surface:#16221e; --deep:#07100d; --moss:#2d7560; --mint:#83dfb7; --gold:#e6bc65; --coral:#ff967a; --focus:#b7ffe0; }
+    * { box-sizing:border-box; }
+    html,body { height:100%; overflow:hidden; }
+    body { margin:0; background:var(--deep); color:var(--ink); font-family:"IBM Plex Sans",system-ui,sans-serif; }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; }
+    .app { height:100vh; display:grid; grid-template-columns:390px minmax(0,1fr); overflow:hidden; }
+    aside { height:100vh; padding:26px 22px 20px; border-right:1px solid var(--line); background:linear-gradient(180deg,#0d1713 0%,#08110e 100%); overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-color:#3d6656 #0a130f; }
+    aside::-webkit-scrollbar { width:10px; }
+    aside::-webkit-scrollbar-track { background:#0a130f; }
+    aside::-webkit-scrollbar-thumb { background:#345849; border:3px solid #0a130f; border-radius:8px; }
+    .brand { border-bottom:1px solid var(--line); padding-bottom:23px; margin-bottom:19px; }
+    .brand-kicker,.label,.stat-label { display:block; color:var(--mint); font:500 10px/1.2 "DM Mono",monospace; letter-spacing:.14em; text-transform:uppercase; }
+    h1 { margin:8px 0 7px; font:600 32px/.96 "Playfair Display",Georgia,serif; letter-spacing:-.035em; }
+    .brand p { color:var(--muted); font-size:13px; line-height:1.45; margin:0; max-width:28ch; }
+    .section { padding:18px 0; border-bottom:1px solid var(--line); }
+    .section h2 { margin:0 0 12px; font-size:14px; font-weight:600; letter-spacing:.01em; }
+    .hint { color:var(--muted); font-size:12px; line-height:1.45; margin:6px 0 12px; }
+    .upload-zone { position:relative; min-height:102px; border:1px dashed #456d5d; background:rgba(45,117,96,.09); display:grid; place-items:center; text-align:center; transition:.2s; }
+    .upload-zone:hover,.upload-zone.drag { border-color:var(--mint); background:rgba(131,223,183,.1); }
+    .upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .upload-zone strong { display:block; color:var(--mint); font-size:13px; }
+    .upload-zone span { color:var(--muted); font:11px "DM Mono",monospace; }
+    .file-meta { min-height:18px; margin-top:8px; color:var(--dimmer); font:11px/1.35 "DM Mono",monospace; overflow-wrap:anywhere; }
+    label { display:block; margin:11px 0 6px; color:var(--muted); font-size:11px; }
+    input,select,textarea { width:100%; color:var(--ink); border:1px solid #31463d; background:#0b1411; padding:9px 10px; outline:none; }
+    textarea { min-height:116px; resize:vertical; font:10px/1.45 "DM Mono",monospace; }
+    input:focus,select:focus,textarea:focus { border-color:var(--focus); box-shadow:0 0 0 2px rgba(183,255,224,.12); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .row.tri { grid-template-columns:1.2fr .65fr 1fr; }
+    .btn { width:100%; border:1px solid #3c7862; background:#1a4437; color:#d5f7e5; padding:10px; font-size:12px; font-weight:600; transition:.16s; }
+    .btn:hover:not(:disabled) { background:#276650; transform:translateY(-1px); }
+    .btn:disabled { opacity:.45; cursor:not-allowed; }
+    .btn.secondary { border-color:#385149; background:transparent; color:var(--ink); }
+    .btn.danger { border-color:#864d43; background:#3c211e; color:#ffc1b1; }
+    .btn + .btn { margin-top:8px; }
+    .chain-list { margin-top:11px; display:flex; gap:6px; flex-wrap:wrap; }
+    .selected-summary { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0 9px; color:var(--mint); font:500 11px "DM Mono",monospace; }
+    .selected-list { max-height:112px; overflow:auto; display:flex; gap:6px; flex-wrap:wrap; align-content:flex-start; padding:2px; }
+    .selected-list:empty::before { content:'尚未选择残基'; color:var(--dimmer); font:11px "DM Mono",monospace; }
+    .selected-chip { border-color:#a47f36; background:#3c3019; color:#ffe3a1; }
+    .clear-btn { width:auto; padding:5px 7px; border-color:#4a6257; font-size:10px; }
+    .chip { padding:4px 6px; background:#172822; border:1px solid #2f4a3e; color:#b9d5c7; font:10px "DM Mono",monospace; }
+    main { min-width:0; height:100vh; overflow:hidden; display:grid; grid-template-rows:auto minmax(400px,1fr) auto; background:radial-gradient(circle at 75% 15%,#15352b 0,#07100d 45%); }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 28px; border-bottom:1px solid var(--line); }
+    .title-wrap { min-width:0; }
+    #structureName { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:500 13px "DM Mono",monospace; color:var(--mint); }
+    .subline { margin-top:4px; color:var(--muted); font-size:12px; }
+    .view-controls { display:flex; gap:7px; flex-wrap:wrap; justify-content:flex-end; }
+    .small-btn { border:1px solid #3b554a; background:#0e1915; color:var(--ink); padding:7px 9px; font:11px "DM Mono",monospace; }
+    .small-btn.active { background:#295e4c; border-color:#6fbd99; }
+    #viewer { min-height:0; width:100%; position:relative; }
+    .empty-state { position:absolute; inset:0; display:grid; place-items:center; padding:28px; pointer-events:none; }
+    .empty-card { max-width:410px; text-align:center; color:var(--muted); }
+    .empty-card .motif { font:600 64px/1 "Playfair Display",serif; color:#3c8268; }
+    .empty-card h2 { color:var(--ink); font-size:18px; margin:8px 0; }
+    .empty-card p { font-size:13px; line-height:1.55; margin:0; }
+    .status { display:grid; grid-template-columns:repeat(4,auto) 1fr; align-items:center; gap:24px; padding:13px 28px; border-top:1px solid var(--line); background:#0b1511; }
+    .stat strong { display:block; margin-top:3px; font:500 14px "DM Mono",monospace; }
+    #message { justify-self:end; color:var(--muted); font-size:12px; text-align:right; }
+    #message.error { color:var(--coral); } #message.ok { color:var(--mint); }
+    .help { margin:0; padding-left:17px; color:var(--muted); font-size:11px; line-height:1.55; }
+    .help code { color:#c9e3d6; font-family:"DM Mono",monospace; }
+    @media (max-width:850px) { html,body { height:auto; overflow:auto; } .app { height:auto; min-height:100vh; grid-template-columns:1fr; overflow:visible; } aside { height:auto; max-height:52vh; border-right:0; border-bottom:1px solid var(--line); } main { height:62vh; min-height:480px; } .status { gap:12px; padding:12px 16px; } .topbar { padding:15px 16px; } #message { display:none; } }
+    @media (prefers-reduced-motion:reduce) { * { transition:none!important; } }
+  
+/* ---------- Chain-alignment workbench visual system ---------- */
+:root{color-scheme:light;--bg:#fff;--surface:#fff;--surface-warm:#fff;--fg:#181d26;--fg-2:#333;--muted:rgba(4,14,32,.69);--meta:var(--muted);--border:#e0e2e6;--border-soft:#eef0f3;--accent:#1b61c9;--accent-on:#fff;--accent-hover:#254fad;--success:#006400;--warn:#eab308;--danger:#dc2626;--font-display:"Haas Groot Disp",Haas,-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;--font-body:Haas,-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;--font-mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Monaco,Consolas,monospace;--focus-ring:0 0 0 3px color-mix(in oklab,var(--accent),transparent 70%)}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:400 16px/1.35 var(--font-body)}button,input,select,textarea{font:inherit}button{min-height:42px;border:1px solid var(--border);border-radius:2px;padding:0 12px;color:var(--fg);background:var(--surface);font-size:14px;font-weight:500;letter-spacing:.02em;cursor:pointer;transition:border-color 150ms ease,background 150ms ease,transform 150ms ease}button:hover:not(:disabled){border-color:var(--fg-2)}button:active:not(:disabled){transform:translateY(1px)}button:disabled{cursor:not-allowed;opacity:.42}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.appbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:24px;min-height:72px;padding:12px clamp(16px,4vw,48px);border-bottom:1px solid var(--fg);background:var(--surface)}.appbar-main{display:flex;min-width:0;align-items:center;gap:16px}.back-link{display:inline-flex;align-items:center;flex:0 0 auto;min-height:32px;padding:0 8px;border-bottom:1px solid var(--fg);color:var(--fg-2);font-size:14px;font-weight:500;letter-spacing:.02em;text-decoration:none}.back-link:before{content:"←";margin-right:8px}.back-link:hover{color:var(--accent);border-color:var(--accent)}.title-stack{min-width:0}.title-stack h1{overflow:hidden;margin:0;color:var(--fg);font:400 clamp(22px,2.3vw,32px)/1.2 var(--font-display);letter-spacing:-.015em;text-overflow:ellipsis;white-space:nowrap}.title-stack p{margin:4px 0 0;color:var(--muted);font-size:14px}.local-state{display:inline-flex;align-items:center;gap:8px;color:var(--fg-2);font:500 12px/1 var(--font-mono);letter-spacing:.08em;white-space:nowrap;text-transform:uppercase}.state-mark{width:6px;height:6px;background:var(--success)}
+.app{height:calc(100dvh - 72px);display:grid;grid-template-columns:minmax(300px,344px) minmax(0,1fr);overflow:hidden;background:var(--bg)}.app>aside{height:calc(100dvh - 72px);min-height:0;padding:24px;overflow-y:auto;overscroll-behavior:contain;border-right:1px solid var(--border);background:var(--surface);scrollbar-color:var(--border) transparent}.app>aside::-webkit-scrollbar{width:8px}.app>aside::-webkit-scrollbar-track{background:transparent}.app>aside::-webkit-scrollbar-thumb{background:var(--border);border:2px solid var(--surface);border-radius:5px}.brand{display:none}.section{position:relative;padding:20px 0 20px 24px;border-bottom:1px solid var(--border-soft)}.section:before{position:absolute;top:24px;bottom:-24px;left:5px;width:1px;background:var(--border);content:""}.section:after{position:absolute;top:24px;left:1px;width:9px;height:9px;border:1px solid var(--fg);border-radius:50%;background:var(--surface);content:""}.section:last-child{border-bottom:0}.section:last-child:before{bottom:20px}.section h2{margin:0 0 12px;color:var(--fg);font:500 16px/1.2 var(--font-display);letter-spacing:.01em}.section h2:after{content:"操作";float:right;color:var(--muted);font:500 11px/1 var(--font-mono);letter-spacing:.08em}.hint{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.48}label{margin:0 0 4px;color:var(--fg-2);font-size:14px;font-weight:500;letter-spacing:.02em}input,select,textarea{color:var(--fg);border:1px solid var(--border);border-radius:2px;background:var(--surface);padding:9px 12px}textarea{font:12px/1.5 var(--font-mono)}input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:var(--focus-ring)}.upload-zone{min-height:0;padding:12px;border:1px dashed var(--fg-2);border-radius:2px;background:var(--surface);text-align:left}.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--surface)}.upload-zone strong{color:var(--fg);font-size:14px;font-weight:500}.upload-zone span{color:var(--muted);font:12px/1.4 var(--font-body)}.file-meta{color:var(--muted);font:12px/1.5 var(--font-mono)}.row{gap:12px}.btn{border-color:var(--accent);background:var(--accent);color:var(--accent-on);border-radius:2px}.btn:hover:not(:disabled){border-color:var(--accent-hover);background:var(--accent-hover)}.btn.secondary{border-color:var(--border);background:var(--surface);color:var(--fg)}.btn.secondary:hover:not(:disabled){border-color:var(--fg-2);background:var(--surface)}.btn.danger{border-color:var(--danger);background:var(--danger);color:#fff}.btn.danger:hover:not(:disabled){border-color:color-mix(in oklab,var(--danger),#000 15%);background:color-mix(in oklab,var(--danger),#000 15%)}.selected-summary{color:var(--fg-2);font:500 12px/1 var(--font-mono)}.selected-list{max-height:112px}.selected-list:empty:before{color:var(--muted);font-family:var(--font-mono)}.chip{border-color:var(--border);background:var(--surface);color:var(--fg-2);font-family:var(--font-mono)}.selected-chip{border-color:var(--warn);background:color-mix(in oklab,var(--warn),transparent 86%);color:#6b5200}.help{color:var(--muted);font-size:12px}.help code{color:var(--fg-2);font-family:var(--font-mono)}
+.app>main{min-width:0;height:calc(100dvh - 72px);overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:24px;background:oklch(98% .005 250)}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:69px;padding:16px 20px;border:1px solid var(--border);border-bottom:0;border-radius:12px 12px 0 0;background:var(--surface)}#structureName{color:var(--fg);font:600 15px/1.3 var(--font-display)}.subline{color:var(--muted);font-size:13px}.small-btn{min-height:32px;border-color:var(--border);background:var(--surface);color:var(--fg);padding:0 10px;font:500 12px/1 var(--font-body)}.small-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}.app #viewer{min-height:0;border:1px solid var(--border);border-top:0;background:var(--surface)}.empty-card{color:var(--muted)}.empty-card .motif{color:var(--accent);font-family:var(--font-display)}.empty-card h2{color:var(--fg);font:500 20px/1.2 var(--font-display)}.empty-card p{font-size:14px}.app .status{grid-template-columns:repeat(3,auto) 1fr;gap:24px;padding:12px 16px;border:1px solid var(--border);border-top:1px solid var(--border);border-radius:0 0 12px 12px;background:var(--surface)}.stat-label{color:var(--muted);font-family:var(--font-mono)}.stat strong{color:var(--fg);font-family:var(--font-mono)}#message{color:var(--muted);font-size:13px}.app #message.ok{color:var(--success)}.app #message.error{color:var(--danger)}
+@media(max-width:980px){html,body{height:auto;overflow:auto}.appbar{grid-template-columns:1fr}.app{height:auto;min-height:calc(100vh - 72px);grid-template-columns:1fr;overflow:visible}.app>aside{height:auto;max-height:none;overflow:visible;border-right:0;border-bottom:1px solid var(--border)}.app>main{height:680px;padding:16px}.section{padding-left:24px}}@media(max-width:640px){.appbar{gap:12px;padding:12px 16px}.appbar-main{align-items:flex-start}.title-stack h1{white-space:normal;font-size:24px}.local-state{margin-left:40px}.app>aside{padding:16px}.app>main{height:590px;padding:12px}.topbar{align-items:flex-start;flex-direction:column;padding:14px}.view-controls{justify-content:flex-start}.app .status{gap:12px;padding:12px}.app #message{display:none}.row{grid-template-columns:1fr}}
+
+
+/* Shared molecular viewer empty state */
+.app #viewer{background:#0d171b}.app .empty-state{z-index:4;background:#0d171b;color:#e8edf0}.app .empty-card{max-width:620px;color:#adb7bd}.app .empty-card .motif{display:grid;place-items:center;width:144px;height:144px;margin:0 auto 18px;border:2px solid #61707b;border-radius:50%;outline:16px solid rgba(123,159,144,.075);color:#0089df;font:400 55px/1 var(--font-display)}.app .empty-card h2{margin:0;color:#e8edf0;font:600 clamp(26px,3vw,36px)/1.25 var(--font-display);letter-spacing:.01em}.app .empty-card p{max-width:620px;margin:20px auto 26px;color:#adb7bd;font-size:18px;line-height:1.55}.viewer-upload-btn{min-height:76px;padding:0 32px;border:0;border-radius:14px;background:#fff;color:#18212a;font:600 20px/1 var(--font-body)}.viewer-upload-btn:hover{border:0;background:#edf4f8;color:#18212a}@media(max-width:640px){.app .empty-card .motif{width:104px;height:104px;margin-bottom:14px;outline-width:10px;font-size:38px}.app .empty-card h2{font-size:26px}.app .empty-card p{font-size:15px}.viewer-upload-btn{min-height:58px;padding:0 24px;font-size:17px}}
+
+
+/* ---------- Shared workflow sidebar ---------- */
+html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;height:100dvh;background:#fff}.workflow-sidebar{width:260px;flex:0 0 260px;display:flex;flex-direction:column;padding:24px 0;background:#fff;border-right:1px solid #d7dde3;overflow-y:auto}.workflow-brand{padding:0 20px 20px;color:#18212a;border-bottom:1px solid #d7dde3;font:650 16px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}.workflow-brand small{display:block;margin-top:4px;color:#5b6670;font:400 12px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}.workflow-nav{flex:1;padding:12px 0}.workflow-section{padding:0 12px;margin-bottom:8px}.workflow-section-title{padding:8px 8px 6px;color:#5b6670;font:500 11px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}.workflow-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;color:#18212a;font:14px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;text-decoration:none}.workflow-item:hover,.workflow-item.active{background:#dceffb;color:#0089d7;text-decoration:none}.workflow-item.active{font-weight:600}.workflow-mark,.workflow-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 auto}.workflow-mark{border-radius:5px;background:#eaf5fd;color:#0089d7;font:600 10px/1 ui-monospace,monospace}.workflow-num{border-radius:50%;background:#dce2e7;color:#62707c;font:500 11px/1 ui-monospace,monospace}.workflow-item.active .workflow-num{background:#0089d7;color:#fff}.workflow-state{width:8px;height:8px;margin-left:auto;border-radius:50%;flex:0 0 auto}.workflow-state.todo{background:#dce2e7}.workflow-state.progress{background:#d28600}.tool-shell{display:flex;min-width:0;flex:1;flex-direction:column;height:100dvh;overflow:hidden}
+.tool-shell .appbar{flex:0 0 auto}.tool-shell>main{flex:1;min-height:0;height:auto}.tool-shell .app{height:100%;min-height:0}.tool-shell .app>aside{height:100%}.tool-shell .app>main{height:100%}
+@media(max-width:860px){html,body{height:auto;overflow:auto}.workflow-shell{display:block;height:auto}.workflow-sidebar{display:none}.tool-shell{height:auto;min-height:100vh;overflow:visible}.tool-shell>main{min-height:auto}.tool-shell .app{height:auto}.tool-shell .app>aside,.tool-shell .app>main{height:auto}}
+
+</style>
+</head>
+<body>
+<div class="workflow-shell">
+<aside class="workflow-sidebar" id="workflow-sidebar" aria-label="蛋白设计工作流导航">
+  <div class="workflow-brand">蛋白设计工作台<small>Protein Design Workbench</small></div>
+  <nav class="workflow-nav">
+    <div class="workflow-section"><div class="workflow-section-title">概览</div><a href="index.html" class="workflow-item"><span class="workflow-mark">总</span>工作流总览</a></div>
+    <div class="workflow-section"><div class="workflow-section-title">设计流程</div>
+      <a href="step-target.html" class="workflow-item"><span class="workflow-num">1</span>靶点分析<span class="workflow-state todo"></span></a>
+      <a href="step-scaffold.html" class="workflow-item active" aria-current="page"><span class="workflow-num">2</span>骨架设计<span class="workflow-state progress"></span></a>
+      <a href="step-sequence.html" class="workflow-item"><span class="workflow-num">3</span>序列优化<span class="workflow-state todo"></span></a>
+      <a href="step-structure.html" class="workflow-item"><span class="workflow-num">4</span>结构预测<span class="workflow-state todo"></span></a>
+      <a href="step-molecular.html" class="workflow-item"><span class="workflow-num">5</span>分子动力学<span class="workflow-state todo"></span></a>
+      <a href="step-binding.html" class="workflow-item"><span class="workflow-num">6</span>结合分析<span class="workflow-state todo"></span></a>
+      <a href="step-alignment.html" class="workflow-item"><span class="workflow-num">7</span>序列比对<span class="workflow-state progress"></span></a>
+    </div>
+  </nav>
+</aside>
+<div class="tool-shell">
+<header class="appbar">
+  <div class="appbar-main">
+    <a href="step-scaffold.html" class="back-link">返回骨架设计</a>
+    <div class="title-stack">
+      <h1>PDB 文件重新编辑工具</h1>
+      <p>在浏览器本地选择、删减、重编号与重命名结构残基。</p>
+    </div>
+  </div>
+  <div class="local-state" aria-label="本地浏览器计算"><span class="state-mark" aria-hidden="true"></span>本地浏览器计算</div>
+</header>
+<div class="app">
+  <aside>
+    <section class="section">
+      <h2>导入结构</h2>
+      <div class="upload-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".pdb,.ent,.cif,.mmcif,text/plain,chemical/x-pdb" />
+        <div><strong>选择 PDB 或 mmCIF 文件</strong><span>也可将文件拖到这里</span></div>
+      </div>
+      <div class="file-meta" id="fileMeta">尚未导入文件</div>
+    </section>
+
+    <section class="section">
+      <h2>鼠标选择</h2>
+      <p class="hint">选择范围决定点击的持久高亮规则；悬停任意原子会以黄色临时标记，离开后不会改动规则或 YAML。</p>
+      <label for="selectionScope">点击选择范围</label>
+      <select id="selectionScope"><option value="residue" selected>Residue · 整个残基</option><option value="atom">Atom · 单个原子</option><option value="backbone">Backbone · 主链原子</option><option value="chain">Chain · 整条链</option></select>
+      <div class="selected-summary"><span id="selectedCount">固定 0 条规则</span><button class="btn secondary clear-btn" id="clearSelectionBtn" disabled>清除选择</button></div>
+      <div class="selected-list" id="selectedList" aria-live="polite"></div>
+      <button class="btn danger" id="deleteSelectedBtn" disabled>删除固定选择</button>
+    </section>
+
+    <section class="section">
+      <h2>YAML 规则</h2>
+      <p class="hint">点击选择会写入此 YAML；修改后点“应用 YAML”更新固定高亮。悬停不会修改内容。</p>
+      <textarea id="yamlRules" spellcheck="false" placeholder="fixedRules: []"></textarea>
+      <button class="btn secondary" id="applyYamlBtn" disabled>应用 YAML</button>
+    </section>
+
+    <section class="section">
+      <h2>删除残基</h2>
+      <p class="hint">按链和编号选择要移除的残基。多个项目用逗号分隔；支持范围。</p>
+      <label for="deleteSpec">残基选择</label>
+      <input id="deleteSpec" placeholder="A:10, A:25-30, B:4" spellcheck="false" />
+      <button class="btn danger" id="deleteBtn" disabled>删除所选残基</button>
+    </section>
+
+    <section class="section">
+      <h2>重新编号</h2>
+      <p class="hint">将选定残基按它们当前在文件中的顺序连续编号。鼠标选择优先；未选择时使用下面的文本选择。插入码将被清除。</p>
+      <label for="renumberSpec">残基选择</label>
+      <input id="renumberSpec" placeholder="A:12-18 或 A:12,B:4-7" spellcheck="false" />
+      <div class="row">
+        <div><label for="startNumber">起始编号</label><input id="startNumber" type="number" value="1" step="1" /></div>
+        <div><label>&nbsp;</label><button class="btn" id="renumberBtn" disabled>连续重编号</button></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>重命名链 ID</h2>
+      <p class="hint">会替换结构中所有与原链 ID 匹配的原子记录。</p>
+      <div class="row">
+        <div><label for="oldChain">原链</label><input id="oldChain" maxlength="4" placeholder="A" /></div>
+        <div><label for="newChain">新链</label><input id="newChain" maxlength="4" placeholder="X" /></div>
+      </div>
+      <button class="btn" id="renameBtn" disabled>重命名链</button>
+      <div class="chain-list" id="chainList"></div>
+    </section>
+
+    <section class="section">
+      <h2>导出</h2>
+      <button class="btn secondary" id="exportPdbBtn" disabled>下载为 PDB</button>
+      <button class="btn secondary" id="exportCifBtn" disabled>下载为 mmCIF</button>
+    </section>
+
+    <section class="section">
+      <h2>选择语法</h2>
+      <ul class="help"><li><code>A:42</code>：链 A 的 42 号残基</li><li><code>A:10-20</code>：链 A 的 10 至 20 号残基</li><li><code>_:5</code>：空白链的 5 号残基</li></ul>
+    </section>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <div class="title-wrap"><div id="structureName">等待导入</div><div class="subline">单击原子选择整段残基 · 拖动旋转 · 滚轮缩放</div></div>
+      <div class="view-controls">
+        <button class="small-btn active" data-style="cartoon">Cartoon</button>
+        <button class="small-btn" data-style="stick">Stick</button>
+        <button class="small-btn" data-style="sphere">Sphere</button>
+        <button class="small-btn" id="fitBtn">Fit view</button>
+      </div>
+    </div>
+    <div id="viewer">
+      <div class="empty-state" id="emptyState"><div class="empty-card"><div class="motif">◇</div><h2>拖入 PDB 或 CIF 文件</h2><p>支持 PDB、ENT 与标准 mmCIF 文件。载入后可选择残基、删除、重新编号与导出编辑后的结构。</p><button type="button" class="viewer-upload-btn" id="viewerUploadBtn">选择文件</button></div></div>
+    </div>
+    <div class="status">
+      <div class="stat"><span class="stat-label">atoms</span><strong id="atomCount">—</strong></div>
+      <div class="stat"><span class="stat-label">residues</span><strong id="residueCount">—</strong></div>
+      <div class="stat"><span class="stat-label">chains</span><strong id="chainCount">—</strong></div>
+      <div id="message" aria-live="polite">准备就绪</div>
+    </div>
+  </main>
+</div>
+</div>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const state = { atoms: [], structureName: '', viewer: null, style: 'cartoon', fixedRules: [], hoveredAtom: null, hoverRegistered: false };
+  const elements = {
+    file: $('#fileInput'), drop: $('#dropZone'), meta: $('#fileMeta'), empty: $('#emptyState'), name: $('#structureName'),
+    deleteSpec: $('#deleteSpec'), renumberSpec: $('#renumberSpec'), start: $('#startNumber'), oldChain: $('#oldChain'), newChain: $('#newChain'),
+    deleteBtn: $('#deleteBtn'), renumberBtn: $('#renumberBtn'), renameBtn: $('#renameBtn'), exportPdb: $('#exportPdbBtn'), exportCif: $('#exportCifBtn'),
+    chains: $('#chainList'), message: $('#message'), atoms: $('#atomCount'), residues: $('#residueCount'), chainCount: $('#chainCount'),
+    selectedCount: $('#selectedCount'), selectedList: $('#selectedList'), clearSelection: $('#clearSelectionBtn'), deleteSelected: $('#deleteSelectedBtn'),
+    scope: $('#selectionScope'), yaml: $('#yamlRules'), applyYaml: $('#applyYamlBtn')
+  };
+
+  function msg(text, kind = '') { elements.message.textContent = text; elements.message.className = kind; }
+  function clean(v) { return String(v ?? '').trim(); }
+  function chainDisplay(c) { return c === '' ? '空白链' : c; }
+  function keyOf(a) { return `${a.chain}|${a.resi}|${a.icode}|${a.resn}`; }
+  function isProtein(resn) { return /^(ALA|ARG|ASN|ASP|CYS|GLN|GLU|GLY|HIS|ILE|LEU|LYS|MET|PHE|PRO|SER|THR|TRP|TYR|VAL|SEC|PYL)$/i.test(resn); }
+
+  function splitCif(line) {
+    const values = []; let current = '', quote = null;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (quote) { if (ch === quote) quote = null; else current += ch; }
+      else if (ch === "'" || ch === '"') quote = ch;
+      else if (/\s/.test(ch)) { if (current) { values.push(current); current = ''; } }
+      else current += ch;
+    }
+    if (current) values.push(current);
+    return values;
+  }
+  function val(v) { return (v === '.' || v === '?' || v === undefined) ? '' : v; }
+
+  function parsePdb(text) {
+    const atoms = [];
+    text.split(/\r?\n/).forEach((line, i) => {
+      const record = line.slice(0, 6).trim();
+      if (record !== 'ATOM' && record !== 'HETATM') return;
+      const x = parseFloat(line.slice(30,38)), y = parseFloat(line.slice(38,46)), z = parseFloat(line.slice(46,54));
+      if (![x,y,z].every(Number.isFinite)) return;
+      atoms.push({ record, serial: parseInt(line.slice(6,11)) || atoms.length+1, name: clean(line.slice(12,16)), alt: clean(line[16]), resn: clean(line.slice(17,20)) || 'UNK', chain: clean(line[21]), resi: parseInt(line.slice(22,26)) || 0, icode: clean(line[26]), x,y,z, occ: parseFloat(line.slice(54,60)) || 1, b: parseFloat(line.slice(60,66)) || 0, element: clean(line.slice(76,78)) || clean(line.slice(12,16)).replace(/[^A-Za-z]/g,'').slice(0,2), sourceLine:i+1 });
+    });
+    return atoms;
+  }
+  function parseCif(text) {
+    const lines = text.split(/\r?\n/); let atoms = [], inLoop = false, headers = [], rows = [];
+    for (let i=0; i<lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('#')) { if (inLoop && headers.length && rows.length) { atoms.push(...cifRows(headers,rows)); } inLoop=false; headers=[]; rows=[]; continue; }
+      if (line === 'loop_') { if (inLoop && headers.length && rows.length) atoms.push(...cifRows(headers,rows)); inLoop=true; headers=[]; rows=[]; continue; }
+      if (inLoop && line.startsWith('_')) { headers.push(line.split(/\s+/)[0]); continue; }
+      if (inLoop && headers.some(h => h.startsWith('_atom_site.'))) { const parts = splitCif(line); if (parts.length >= headers.length) rows.push(parts.slice(0,headers.length)); }
+      else if (inLoop && !line.startsWith('_')) { inLoop=false; headers=[]; rows=[]; }
+    }
+    if (inLoop && headers.length && rows.length) atoms.push(...cifRows(headers,rows));
+    return atoms;
+  }
+  function cifRows(headers, rows) {
+    if (!headers.some(h => h.startsWith('_atom_site.'))) return [];
+    const index = (names) => { for (const n of names) { const x = headers.indexOf('_atom_site.'+n); if (x >= 0) return x; } return -1; };
+    const get = (row, names) => { const x=index(names); return x<0 ? '' : val(row[x]); };
+    return rows.map((r,n) => {
+      const x=Number(get(r,['Cartn_x'])), y=Number(get(r,['Cartn_y'])), z=Number(get(r,['Cartn_z']));
+      if (![x,y,z].every(Number.isFinite)) return null;
+      const rs = get(r,['auth_seq_id','label_seq_id']);
+      return { record:get(r,['group_PDB']) || 'ATOM', serial:parseInt(get(r,['id'])) || n+1, name:get(r,['auth_atom_id','label_atom_id']) || 'X', alt:get(r,['label_alt_id']), resn:get(r,['auth_comp_id','label_comp_id']) || 'UNK', chain:get(r,['auth_asym_id','label_asym_id']), resi:parseInt(rs) || 0, icode:get(r,['pdbx_PDB_ins_code']), x,y,z, occ:parseFloat(get(r,['occupancy'])) || 1, b:parseFloat(get(r,['B_iso_or_equiv'])) || 0, element:get(r,['type_symbol']) || 'C' };
+    }).filter(Boolean);
+  }
+
+  function parseSelection(input) {
+    const chunks = clean(input).split(',').map(s => s.trim()).filter(Boolean); if (!chunks.length) throw new Error('请输入至少一个残基选择。');
+    return chunks.map(chunk => {
+      const m = chunk.match(/^([^:]+):(-?\d+)(?:-(-?\d+))?$/);
+      if (!m) throw new Error(`无法识别“${chunk}”。格式应为 A:10 或 A:10-20。`);
+      const start=Number(m[2]), end=m[3] === undefined ? start : Number(m[3]);
+      return { chain: m[1] === '_' ? '' : m[1], min:Math.min(start,end), max:Math.max(start,end) };
+    });
+  }
+  function matches(a, selections) { return selections.some(s => a.chain === s.chain && a.resi >= s.min && a.resi <= s.max); }
+  function normalizeAtom(atom) {
+    return { chain:clean(atom.chain), resi:Number(atom.resi), icode:clean(atom.icode), resn:clean(atom.resn), name:clean(atom.atom || atom.name), serial:Number(atom.serial), record:clean(atom.record) };
+  }
+  function atomKey(atom) { const a=normalizeAtom(atom); return `${a.chain}|${a.resi}|${a.icode}|${a.resn}|${a.name}|${a.serial}`; }
+  function residueKey(atom) { const a=normalizeAtom(atom); return `${a.chain}|${a.resi}|${a.icode}|${a.resn}`; }
+  function keyOf(a) { return residueKey(a); }
+  function ruleKey(rule) {
+    const a=normalizeAtom(rule.atom);
+    if (rule.scope === 'chain') return `chain|${a.chain}`;
+    if (rule.scope === 'residue') return `residue|${a.chain}|${a.resi}|${a.icode}|${a.resn}`;
+    if (rule.scope === 'backbone') return `backbone|${a.chain}|${a.resi}|${a.icode}|${a.resn}`;
+    return `atom|${atomKey(a)}`;
+  }
+  function ruleSelector(rule) {
+    const a=normalizeAtom(rule.atom);
+    if (rule.scope === 'chain') return {chain:a.chain};
+    if (rule.scope === 'backbone') return {chain:a.chain, resi:a.resi, icode:a.icode || '', atom:['N','CA','C','O']};
+    if (rule.scope === 'atom') return {chain:a.chain, resi:a.resi, icode:a.icode || '', atom:a.name};
+    return {chain:a.chain, resi:a.resi, icode:a.icode || ''};
+  }
+  function ruleMatches(atom, rule) {
+    const a=normalizeAtom(atom), r=normalizeAtom(rule.atom);
+    if (a.chain !== r.chain) return false;
+    if (rule.scope === 'chain') return true;
+    if (a.resi !== r.resi || a.icode !== r.icode) return false;
+    if (rule.scope === 'backbone') return ['N','CA','C','O'].includes(a.name);
+    return rule.scope === 'atom' ? a.name === r.name && (!r.serial || !a.serial || a.serial === r.serial) : true;
+  }
+  function fixedEntries() {
+    return state.fixedRules.map(rule => ({rule, atom:state.atoms.find(atom => ruleMatches(atom,rule))})).filter(entry => entry.atom);
+  }
+  function selectedEntries() {
+    const byResidue=new Map();
+    fixedEntries().forEach(entry => { const k=residueKey(entry.atom); if (!byResidue.has(k)) byResidue.set(k,entry.atom); });
+    return [...byResidue.values()];
+  }
+  function writeYAMLFromRules() {
+    const rows=state.fixedRules.map(rule => {
+      const a=normalizeAtom(rule.atom); const chain=a.chain || '_';
+      return `  - scope: ${rule.scope}\n    chain: ${chain}\n    resi: ${a.resi}\n    icode: ${a.icode || '""'}\n    resn: ${a.resn || 'UNK'}\n    atom: ${a.name || '""'}\n    serial: ${a.serial || 0}`;
+    });
+    elements.yaml.value=`fixedRules:\n${rows.length ? rows.join('\n') : '  []'}\n`;
+  }
+  function readYAMLToRules(text) {
+    const blocks=String(text || '').split(/\n\s*-\s*scope:\s*/).slice(1);
+    return blocks.map(block => {
+      const [scopeLine,...rest]=block.split('\n'); const fields={scope:clean(scopeLine)};
+      rest.forEach(line => { const m=line.match(/^\s*([\w]+):\s*(.*?)\s*$/); if (m) fields[m[1]]=clean(m[2]).replace(/^['"]|['"]$/g,''); });
+      const atom={chain:fields.chain === '_' ? '' : fields.chain, resi:Number(fields.resi), icode:fields.icode, resn:fields.resn, name:fields.atom, serial:Number(fields.serial)};
+      if (!['atom','residue','backbone','chain'].includes(fields.scope) || !Number.isFinite(atom.resi)) throw new Error('YAML 规则格式无效。');
+      return {scope:fields.scope, atom:normalizeAtom(atom)};
+    });
+  }
+  function syncSelectionInputs() {
+    const entries=selectedEntries();
+    const spec=entries.map(a => `${a.chain || '_'}:${a.resi}${a.icode || ''}`).join(', ');
+    elements.deleteSpec.value=spec; elements.renumberSpec.value=spec;
+  }
+  function residueLabel(a) { return `${chainDisplay(a.chain)}:${a.resn} ${a.resi}${a.icode || ''}`; }
+  function updateSelectionUI() {
+    const entries=fixedEntries();
+    elements.selectedCount.textContent=`固定 ${entries.length} 条规则`;
+    elements.clearSelection.disabled=!entries.length; elements.deleteSelected.disabled=!entries.length;
+    elements.selectedList.innerHTML=entries.map(({rule,atom})=>`<button type="button" class="chip selected-chip" data-rule-key="${ruleKey(rule)}" title="点击取消固定高亮">${rule.scope}: ${residueLabel(atom)}${rule.scope==='atom' ? '.'+normalizeAtom(atom).name : ''} ×</button>`).join('');
+    elements.selectedList.querySelectorAll('[data-rule-key]').forEach(button=>button.addEventListener('click',()=>{
+      state.fixedRules=state.fixedRules.filter(rule=>ruleKey(rule)!==button.dataset.ruleKey); writeYAMLFromRules(); syncSelectionInputs(); render(false); updateSelectionUI(); msg('已取消固定选择。');
+    }));
+  }
+  function toggleSelected(atom) {
+    const rule={scope:elements.scope.value, atom:normalizeAtom(atom)}; const key=ruleKey(rule);
+    const alreadyFixed=state.fixedRules.some(item=>ruleKey(item)===key);
+    if (alreadyFixed) state.fixedRules=state.fixedRules.filter(item=>ruleKey(item)!==key);
+    else state.fixedRules.push(rule);
+    writeYAMLFromRules(); syncSelectionInputs(); render(false); updateSelectionUI();
+    msg(`${alreadyFixed ? '已取消固定高亮' : '已固定高亮'} ${residueLabel(rule.atom)}。`,'ok');
+  }
+  function setHoveredAtom(atom) {
+    const normalized=atom ? normalizeAtom(atom) : null;
+    if ((normalized && state.hoveredAtom && atomKey(normalized)===atomKey(state.hoveredAtom)) || (!normalized && !state.hoveredAtom)) return;
+    state.hoveredAtom=normalized; render(false);
+  }
+
+  function toPdb() {
+    const fmt = (v,n,d=0) => String(v ?? '').slice(0,n).padStart(n, ' ');
+    const num = (v,n,d) => (Number(v)||0).toFixed(d).padStart(n,' ');
+    const atomLine = a => `${a.record.padEnd(6)}${fmt(a.serial,5)} ${String(a.name).padEnd(4).slice(0,4)}${String(a.alt||' ').slice(0,1)}${String(a.resn).padStart(3).slice(-3)} ${String(a.chain||' ').slice(0,1)}${fmt(a.resi,4)}${String(a.icode||' ').slice(0,1)}   ${num(a.x,8,3)}${num(a.y,8,3)}${num(a.z,8,3)}${num(a.occ,6,2)}${num(a.b,6,2)}          ${String(a.element||'').padStart(2).slice(-2)}`;
+    return `REMARK   1 Edited with Residue Studio\n${state.atoms.map(atomLine).join('\n')}\nEND\n`;
+  }
+  function cifQuote(v) { const s=String(v ?? '') || '.'; return /\s/.test(s) ? `'${s.replace(/'/g,"''")}'` : s; }
+  function toCif() {
+    const h=['group_PDB','id','type_symbol','label_atom_id','label_alt_id','label_comp_id','label_asym_id','label_seq_id','pdbx_PDB_ins_code','Cartn_x','Cartn_y','Cartn_z','occupancy','B_iso_or_equiv','auth_seq_id','auth_comp_id','auth_asym_id','auth_atom_id'];
+    const rows=state.atoms.map((a,i)=>[a.record,i+1,a.element,a.name,a.alt||'.',a.resn,a.chain||'.',a.resi,a.icode||'?',a.x.toFixed(3),a.y.toFixed(3),a.z.toFixed(3),a.occ.toFixed(2),a.b.toFixed(2),a.resi,a.resn,a.chain||'.',a.name].map(cifQuote).join(' '));
+    return `data_residue_studio\n#\nloop_\n${h.map(x=>'_atom_site.'+x).join('\n')}\n${rows.join('\n')}\n#\n`;
+  }
+  function viewerFormat() { return 'pdb'; }
+  function atomSelector(atom) {
+    const a=normalizeAtom(atom);
+    return {chain:a.chain, resi:a.resi, icode:a.icode || '', atom:a.name};
+  }
+  function atomsForRule(rule) { return state.atoms.filter(atom => ruleMatches(atom,rule)); }
+  function serialSelector(atoms) {
+    const serials=atoms.map(atom=>Number(atom.serial)).filter(Number.isFinite);
+    return serials.length ? {serial:serials} : {};
+  }
+  function fixedHighlightStyle(atom) {
+    const ligand=normalizeAtom(atom).resn.toUpperCase()==='IUM';
+    const color=ligand ? '#f97316' : '#38a8ff';
+    return {stick:{radius:.38, color}, sphere:{scale:ligand?.86:.74, color}};
+  }
+  function addPersistentMarker(atom, color) {
+    state.viewer.addSphere({center:{x:atom.x,y:atom.y,z:atom.z}, radius:.34, color, opacity:1});
+  }
+  function applyStyle() {
+    if (state.style === 'cartoon') {
+      state.viewer.setStyle({}, {cartoon:{color:'spectrum'}});
+      state.viewer.setStyle({hetflag:true}, {stick:{radius:.18, colorscheme:'Jmol'}});
+    } else if (state.style === 'stick') {
+      state.viewer.setStyle({}, {stick:{radius:.18, colorscheme:'Jmol'}});
+    } else {
+      state.viewer.setStyle({}, {sphere:{scale:.28, colorscheme:'Jmol'}});
+    }
+    state.fixedRules.forEach(rule => {
+      const matched=atomsForRule(rule);
+      if (!matched.length) return;
+      const anchor=matched[0]; const ligand=normalizeAtom(anchor).resn.toUpperCase()==='IUM';
+      const color=ligand ? '#f97316' : '#38a8ff';
+      const selection=serialSelector(matched); const style=fixedHighlightStyle(anchor);
+      // Serial-number selectors target the exact atom records just rendered, avoiding
+      // chain/residue/name variations returned by different PDB/mmCIF parsers.
+      state.viewer.setStyle(selection, style);
+      state.viewer.addStyle(selection, {line:{linewidth:4, color:ligand ? '#fed7aa' : '#c4e7ff'}});
+      matched.forEach(atom => addPersistentMarker(atom,color));
+      state.viewer.addLabel(`${rule.scope}: ${residueLabel(anchor)}`, {position:{x:anchor.x,y:anchor.y,z:anchor.z}, backgroundColor:ligand?'#431407':'#062f4f', backgroundOpacity:.9, fontColor:'#ffffff', fontSize:12, borderColor:color, borderThickness:2, inFront:true});
+    });
+    if (state.hoveredAtom) {
+      const selection=atomSelector(state.hoveredAtom);
+      state.viewer.setStyle(selection, {stick:{radius:.38, color:'#facc15'}, sphere:{scale:.42, color:'#facc15'}});
+      state.viewer.addStyle(selection, {line:{linewidth:4, color:'#fff7b0'}});
+      state.viewer.addSphere({center:{x:state.hoveredAtom.x,y:state.hoveredAtom.y,z:state.hoveredAtom.z}, radius:.38, color:'#facc15', opacity:1});
+    }
+  }
+  function bindModelInteractions() {
+    state.viewer.setClickable({}, true, atom => { if (atom) toggleSelected(atom); });
+    // 3Dmol 2.4.2 accepts (selection, hoverable, hoverCallback, unhoverCallback).
+    state.viewer.setHoverable({}, true,
+      atom => setHoveredAtom(atom),
+      () => setHoveredAtom(null)
+    );
+    state.hoverRegistered=true;
+  }
+  function render(fit = true) {
+    if (!state.viewer) state.viewer = $3Dmol.createViewer('viewer', { backgroundColor:'#07100d', antialias:true });
+    state.viewer.clear();
+    if (!state.atoms.length) { state.viewer.render(); return; }
+    state.viewer.addModel(toPdb(), viewerFormat());
+    applyStyle();
+    bindModelInteractions(); // The model is recreated above, so callbacks are bound once per new model only.
+    if (fit) state.viewer.zoomTo();
+    state.viewer.render();
+  }
+  function updateInfo() {
+    const residues = new Set(state.atoms.map(keyOf)); const chains=[...new Set(state.atoms.map(a=>a.chain))].sort();
+    elements.atoms.textContent=state.atoms.length.toLocaleString(); elements.residues.textContent=residues.size.toLocaleString(); elements.chainCount.textContent=chains.length;
+    elements.chains.innerHTML = chains.map(c=>`<button type="button" class="chip" data-chain="${String(c).replace(/"/g,'&quot;')}">${chainDisplay(c)}</button>`).join('') || '<span class="hint">未检测到链</span>';
+    elements.chains.querySelectorAll('[data-chain]').forEach(b=>b.addEventListener('click',()=>{ elements.oldChain.value=b.dataset.chain; elements.newChain.focus(); }));
+    updateSelectionUI();
+  }
+  function setLoaded(enabled) {
+    [elements.deleteBtn,elements.renumberBtn,elements.renameBtn,elements.exportPdb,elements.exportCif,elements.applyYaml].forEach(b=>b.disabled=!enabled);
+    updateSelectionUI();
+  }
+  function refresh(note='已更新结构。') { render(); updateInfo(); msg(note,'ok'); }
+  function loadText(text, name) {
+    let atoms; const looksCif=/^\s*(data_|loop_|_atom_site\.)/mi.test(text) || /\.(cif|mmcif)$/i.test(name);
+    try { atoms=looksCif ? parseCif(text) : parsePdb(text); if (!atoms.length && looksCif) atoms=parsePdb(text); } catch(e) { throw new Error('无法解析此文件：'+e.message); }
+    if (!atoms.length) throw new Error('未读到 ATOM/HETATM 坐标。请确认使用的是标准 PDB 或含 _atom_site 坐标表的 mmCIF 文件。');
+    state.atoms=atoms; state.fixedRules=[]; state.hoveredAtom=null; state.structureName=name; elements.name.textContent=name; elements.meta.textContent=`${looksCif?'mmCIF':'PDB'} · ${atoms.length.toLocaleString()} 个原子`; elements.empty.style.display='none'; writeYAMLFromRules(); setLoaded(true); refresh('结构已加载。');
+  }
+  function readFile(file) { if (!file) return; const reader=new FileReader(); reader.onload=()=>{ try { loadText(String(reader.result),file.name); } catch(e) { msg(e.message,'error'); } }; reader.onerror=()=>msg('读取文件失败。','error'); reader.readAsText(file); }
+  function download(text, extension, mime) { const stem=(state.structureName || 'edited_structure').replace(/\.[^.]+$/,'').replace(/[^\w.-]+/g,'_'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.download=`${stem}_edited.${extension}`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),500); }
+  function fixedRuleMatches(atom) { return state.fixedRules.some(rule=>ruleMatches(atom,rule)); }
+  function clearFixedRules() { state.fixedRules=[]; writeYAMLFromRules(); syncSelectionInputs(); render(false); updateSelectionUI(); }
+
+  $('#viewerUploadBtn').addEventListener('click',()=>elements.file.click());
+  elements.file.addEventListener('change',e=>readFile(e.target.files[0]));
+  ['dragenter','dragover'].forEach(evt=>elements.drop.addEventListener(evt,e=>{e.preventDefault(); elements.drop.classList.add('drag');}));
+  ['dragleave','drop'].forEach(evt=>elements.drop.addEventListener(evt,e=>{e.preventDefault(); elements.drop.classList.remove('drag');}));
+  elements.drop.addEventListener('drop',e=>readFile(e.dataTransfer.files[0]));
+  elements.applyYaml.addEventListener('click',()=>{ try { state.fixedRules=readYAMLToRules(elements.yaml.value); state.hoveredAtom=null; writeYAMLFromRules(); syncSelectionInputs(); render(false); updateSelectionUI(); msg('已应用 YAML 固定规则。','ok'); } catch(e) { msg(e.message,'error'); } });
+  elements.deleteSelected.addEventListener('click',()=>{
+    const rules=[...state.fixedRules]; if (!rules.length) { msg('请先固定选择。','error'); return; }
+    const before=state.atoms.length; state.atoms=state.atoms.filter(atom=>!rules.some(rule=>ruleMatches(atom,rule))); clearFixedRules(); refresh(`已删除固定选择中的 ${before-state.atoms.length} 个原子。`);
+  });
+  elements.clearSelection.addEventListener('click',()=>{ clearFixedRules(); msg('已清除固定选择。'); });
+  elements.deleteBtn.addEventListener('click',()=>{ try { const s=parseSelection(elements.deleteSpec.value), before=state.atoms.length; state.atoms=state.atoms.filter(a=>!matches(a,s)); const removed=before-state.atoms.length; if (!removed) throw new Error('没有原子匹配该选择，未作修改。'); clearFixedRules(); refresh(`已删除 ${removed.toLocaleString()} 个原子。`); } catch(e) { msg(e.message,'error'); } });
+  elements.renumberBtn.addEventListener('click',()=>{ try {
+    const start=Number(elements.start.value); if (!Number.isInteger(start)) throw new Error('起始编号必须是整数。');
+    const fixedAtoms=state.atoms.filter(fixedRuleMatches); const useMouse=fixedAtoms.length>0; const order=[]; const seen=new Set();
+    let matcher; if (useMouse) matcher=fixedRuleMatches; else { const s=parseSelection(elements.renumberSpec.value); matcher=a=>matches(a,s); }
+    state.atoms.forEach(a=>{ if(matcher(a)&&!seen.has(residueKey(a))) { seen.add(residueKey(a)); order.push({chain:a.chain,resi:a.resi,icode:a.icode,resn:a.resn}); } });
+    if(!order.length) throw new Error('没有残基匹配该选择，未作修改。');
+    const map=new Map(order.map((r,i)=>[`${r.chain}|${r.resi}|${r.icode}|${r.resn}`,start+i]));
+    state.atoms.forEach(a=>{const n=map.get(residueKey(a));if(n!==undefined){a.resi=n;a.icode='';}});
+    clearFixedRules(); refresh(`已连续重编号 ${order.length} 个残基（从 ${start} 开始${useMouse?'，使用固定选择':''}）。`);
+  } catch(e) { msg(e.message,'error'); } });
+  elements.renameBtn.addEventListener('click',()=>{ const oldC=clean(elements.oldChain.value), newC=clean(elements.newChain.value); if (!newC) {msg('请输入新的链 ID。','error');return;} const count=state.atoms.filter(a=>a.chain===oldC).length; if(!count) { msg(`未找到链 ${chainDisplay(oldC)}。`,'error');return; } state.atoms.forEach(a=>{if(a.chain===oldC)a.chain=newC;}); state.fixedRules=state.fixedRules.map(rule=>({...rule,atom:{...rule.atom,chain:rule.atom.chain===oldC?newC:rule.atom.chain}})); writeYAMLFromRules(); syncSelectionInputs(); refresh(`链 ${chainDisplay(oldC)} 已重命名为 ${newC}。`); });
+  elements.exportPdb.addEventListener('click',()=>download(toPdb(),'pdb','chemical/x-pdb'));
+  elements.exportCif.addEventListener('click',()=>download(toCif(),'cif','chemical/x-cif'));
+  document.querySelectorAll('[data-style]').forEach(b=>b.addEventListener('click',()=>{ state.style=b.dataset.style; document.querySelectorAll('[data-style]').forEach(x=>x.classList.toggle('active',x===b)); if(state.atoms.length) render(); }));
+  $('#fitBtn').addEventListener('click',()=>{ if(state.viewer && state.atoms.length) {state.viewer.zoomTo();state.viewer.render();} });
+  window.addEventListener('resize',()=>{if(state.viewer)state.viewer.resize();});
+})();
+</script>
+</body>
+</html>

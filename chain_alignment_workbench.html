@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDB 链复制与骨架对齐工作台</title>
+  <script src="https://3Dmol.csb.pitt.edu/build/3Dmol-min.js" defer></script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-warm: var(--surface);
+      --fg: #181d26;
+      --fg-2: #333333;
+      --muted: rgba(4, 14, 32, 0.69);
+      --meta: var(--muted);
+      --border: #e0e2e6;
+      --border-soft: #eef0f3;
+      --accent: #1b61c9;
+      --accent-on: #ffffff;
+      --accent-hover: #254fad;
+      --accent-active: color-mix(in oklab, var(--accent), black 14%);
+      --success: #006400;
+      --warn: #eab308;
+      --danger: #dc2626;
+      --font-display: "Haas Groot Disp", Haas, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+      --font-body: Haas, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+      --text-xs: 12px;
+      --text-sm: 14px;
+      --text-base: 16px;
+      --text-lg: 20px;
+      --text-xl: 24px;
+      --text-2xl: 32px;
+      --text-3xl: 40px;
+      --text-4xl: 48px;
+      --leading-body: 1.35;
+      --leading-tight: 1.2;
+      --tracking-display: 0;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-12: 48px;
+      --section-y-desktop: 96px;
+      --section-y-tablet: 64px;
+      --section-y-phone: 48px;
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-pill: 9999px;
+      --elev-flat: none;
+      --elev-ring: 0 0 0 1px var(--border);
+      --elev-raised: 0 0 1px rgba(0, 0, 0, 0.32), 0 0 2px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(45, 127, 249, 0.28), inset 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+      --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 70%);
+      --motion-fast: 150ms;
+      --motion-base: 200ms;
+      --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+      --container-max: 1200px;
+      --container-gutter-desktop: 24px;
+      --container-gutter-tablet: 16px;
+      --container-gutter-phone: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 400 var(--text-base)/var(--leading-body) var(--font-body); }
+    button, input, select { font: inherit; }
+    button, input, select { min-height: 42px; }
+    button { border: 1px solid var(--border); border-radius: 2px; padding: 0 var(--space-3); color: var(--fg); background: var(--surface); font-size: var(--text-sm); font-weight: 500; letter-spacing: .02em; cursor: pointer; transition: border-color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard); }
+    button:hover:not(:disabled) { border-color: var(--fg-2); }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button.action-primary { border-color: var(--accent); background: var(--accent); color: var(--accent-on); }
+    button.action-primary:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
+    button:disabled { cursor: not-allowed; opacity: .42; }
+    input, select { width: 100%; border: 1px solid var(--border); border-radius: 2px; padding: 0 var(--space-3); color: var(--fg); background: var(--surface); }
+    input::placeholder { color: var(--muted); }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+    a { color: inherit; text-decoration: none; }
+
+    .appbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-6); min-height: 72px; padding: var(--space-3) clamp(var(--space-4), 4vw, var(--space-12)); border-bottom: 1px solid var(--fg); background: var(--surface); }
+    .appbar-main { display: flex; min-width: 0; align-items: center; gap: var(--space-4); }
+    .back-link { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: 32px; padding: 0 var(--space-2); border-bottom: 1px solid var(--fg); color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; letter-spacing: .02em; }
+    .back-link::before { content: "←"; margin-right: var(--space-2); }
+    .back-link:hover { color: var(--accent); border-color: var(--accent); }
+    .title-stack { min-width: 0; }
+    .title-stack h1 { overflow: hidden; margin: 0; font: 400 clamp(22px, 2.3vw, var(--text-2xl))/var(--leading-tight) var(--font-display); letter-spacing: -.015em; text-overflow: ellipsis; white-space: nowrap; }
+    .title-stack p { margin: var(--space-1) 0 0; color: var(--muted); font-size: var(--text-sm); letter-spacing: .01em; }
+    .local-state { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--fg-2); font: 500 var(--text-xs)/1 var(--font-mono); letter-spacing: .08em; white-space: nowrap; text-transform: uppercase; }
+    .state-mark { width: 6px; height: 6px; background: var(--success); }
+
+    main { display: grid; grid-template-columns: minmax(300px, 344px) minmax(0, 1fr); min-height: calc(100dvh - 72px); }
+    .control-rail { height: calc(100dvh - 72px); min-height: 0; padding: var(--space-6); overflow-y: auto; overscroll-behavior: contain; border-right: 1px solid var(--border); background: var(--surface); }
+    .rail-intro { padding: 0 0 var(--space-5); border-bottom: 2px solid var(--fg); }
+    .rail-intro::before { content: "操作流程"; display: block; margin-bottom: var(--space-2); color: var(--muted); font: 500 var(--text-xs)/1 var(--font-mono); letter-spacing: .1em; }
+    .rail-intro h2 { margin: 0; font: 500 var(--text-xl)/var(--leading-tight) var(--font-display); letter-spacing: -.01em; }
+    .rail-intro p { margin: var(--space-2) 0 0; max-width: 36ch; color: var(--muted); font-size: var(--text-sm); }
+    .operation { position: relative; padding: var(--space-5) 0 var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-soft); }
+    .operation::before { position: absolute; top: var(--space-6); bottom: calc(var(--space-6) * -1); left: 5px; width: 1px; background: var(--border); content: ""; }
+    .operation::after { position: absolute; top: var(--space-6); left: 1px; width: 9px; height: 9px; border: 1px solid var(--fg); border-radius: var(--radius-pill); background: var(--surface); content: ""; }
+    .operation:last-child { border-bottom: 0; }
+    .operation:last-child::before { bottom: var(--space-6); }
+    .operation-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+    .operation-heading h3 { margin: 0; font: 500 var(--text-base)/var(--leading-tight) var(--font-display); letter-spacing: .01em; }
+    .operation-index { color: var(--muted); font: 500 var(--text-xs)/1 var(--font-mono); letter-spacing: .08em; }
+    .help { margin: 0 0 var(--space-4); color: var(--muted); font-size: var(--text-sm); }
+    .field { display: grid; gap: var(--space-1); }
+    .field + .field { margin-top: var(--space-3); }
+    label { color: var(--fg-2); font-size: var(--text-sm); font-weight: 500; letter-spacing: .02em; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-top: var(--space-4); }
+    .action-row.single { grid-template-columns: 1fr; }
+    .file-input { display: grid; gap: var(--space-1); width: 100%; padding: var(--space-3); border: 1px dashed var(--fg-2); border-radius: 2px; color: var(--fg); background: var(--surface); cursor: pointer; transition: border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); }
+    .file-input:hover { border-color: var(--accent); color: var(--accent); }
+    .file-input strong { font-size: var(--text-sm); font-weight: 500; letter-spacing: .02em; }
+    .file-input span { color: var(--muted); font-size: var(--text-xs); }
+    .status { min-height: 24px; margin: var(--space-4) 0 0; color: var(--muted); font: 400 var(--text-xs)/1.5 var(--font-mono); }
+    .status.error { color: var(--danger); font-weight: 500; }
+    .status.success { color: var(--success); font-weight: 500; }
+    .chain-list { display: grid; gap: var(--space-2); max-height: 290px; overflow: auto; }
+    .chain-row { display: grid; grid-template-columns: 4px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--border-soft); }
+    .chain-row:last-child { border-bottom: 0; }
+    .swatch { border-radius: 0; }
+    .chain-row strong { display: flex; align-items: baseline; gap: var(--space-2); color: var(--fg); font-size: var(--text-sm); font-weight: 500; }
+    .chain-meta { margin-top: var(--space-1); color: var(--muted); font-size: var(--text-xs); }
+    .residues { margin-top: var(--space-1); color: var(--fg-2); font: 400 var(--text-xs)/1.5 var(--font-mono); overflow-wrap: anywhere; }
+    .badge { display: inline-block; color: var(--muted); font: 400 var(--text-xs)/1 var(--font-mono); }
+    .empty { padding: var(--space-4) 0; color: var(--muted); font-size: var(--text-sm); }
+
+    .workspace { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; padding: var(--space-6); background: oklch(98% 0.005 250); }
+    .workspace-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: 20px 24px; border: 1px solid oklch(90% 0.008 240); border-bottom: 0; border-radius: 12px 12px 0 0; background: oklch(100% 0 0); }
+    .workspace-label { margin: 0; color: oklch(22% 0.02 240); font: 600 15px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+    .workspace-hint { margin: 0; color: oklch(50% 0.018 240); font: 13px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    .model-stage { display: grid; grid-template-rows: minmax(440px, 1fr) auto; min-height: 0; overflow: hidden; border: 1px solid oklch(90% 0.008 240); border-top: 0; border-radius: 0 0 12px 12px; background: oklch(100% 0 0); box-shadow: none; }
+    #viewer { position: relative; width: 100%; min-height: 440px; overflow: hidden; background: oklch(100% 0 0); }
+    .viewer-note { display: flex; justify-content: space-between; gap: var(--space-4); padding: 12px 16px; border-top: 1px solid oklch(90% 0.008 240); color: oklch(50% 0.018 240); font: 13px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+    .viewer-note strong { color: oklch(22% 0.02 240); font-weight: 500; }
+
+    @media (max-width: 980px) { main { grid-template-columns: 1fr; } .control-rail { height: auto; overflow-y: visible; overscroll-behavior: auto; border-right: 0; border-bottom: 1px solid var(--border); } .operation-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-6); } .operation { min-width: 0; } .workspace { min-height: 620px; } }
+    @media (max-width: 640px) { .appbar { grid-template-columns: 1fr; gap: var(--space-3); padding: var(--space-3) var(--space-4); } .appbar-main { align-items: flex-start; } .title-stack h1 { font-size: var(--text-xl); white-space: normal; } .local-state { margin-left: 40px; } .control-rail, .workspace { padding: var(--space-4); } .operation-group { grid-template-columns: 1fr; } .field-row, .action-row { grid-template-columns: 1fr; } .workspace { min-height: 500px; } .model-stage, #viewer { min-height: 400px; } .workspace-head { align-items: flex-start; flex-direction: column; } .viewer-note { display: block; } .viewer-note span { display: block; margin-top: var(--space-1); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 1ms !important; } }
+  
+/* Shared molecular viewer empty state */
+.model-stage{background:#0d171b}.workspace-head{border-color:#cfd6dc}.workspace-label{font-size:20px;font-weight:600}.workspace-hint{display:none}#viewer{background:#0d171b}.viewer-drop-state{position:absolute;inset:0;z-index:3;display:grid;place-items:center;align-content:center;padding:32px;text-align:center;color:#e8edf0;background:#0d171b}.viewer-drop-state[hidden]{display:none}.drop-orb{display:grid;place-items:center;width:144px;height:144px;margin-bottom:18px;border:2px solid #61707b;border-radius:50%;outline:16px solid rgba(123,159,144,.075);color:#0089df;font:400 55px/1 var(--font-display)}.viewer-drop-state h2{margin:0;color:#e8edf0;font:600 clamp(26px,3vw,36px)/1.25 var(--font-display);letter-spacing:.01em}.viewer-drop-state p{max-width:620px;margin:20px 0 26px;color:#adb7bd;font-size:18px;line-height:1.55}.viewer-upload-btn{min-height:76px;padding:0 32px;border:0;border-radius:14px;background:#fff;color:#18212a;font-size:20px;font-weight:600}.viewer-upload-btn:hover{background:#edf4f8;border:0}.model-stage:has(.viewer-drop-state:not([hidden])) .viewer-note{display:none}@media(max-width:640px){.drop-orb{width:104px;height:104px;margin-bottom:14px;outline-width:10px;font-size:38px}.viewer-drop-state h2{font-size:26px}.viewer-drop-state p{font-size:15px}.viewer-upload-btn{min-height:58px;padding:0 24px;font-size:17px}}
+
+
+/* ---------- Shared workflow sidebar ---------- */
+html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;height:100dvh;background:#fff}.workflow-sidebar{width:260px;flex:0 0 260px;display:flex;flex-direction:column;padding:24px 0;background:#fff;border-right:1px solid #d7dde3;overflow-y:auto}.workflow-brand{padding:0 20px 20px;color:#18212a;border-bottom:1px solid #d7dde3;font:650 16px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}.workflow-brand small{display:block;margin-top:4px;color:#5b6670;font:400 12px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}.workflow-nav{flex:1;padding:12px 0}.workflow-section{padding:0 12px;margin-bottom:8px}.workflow-section-title{padding:8px 8px 6px;color:#5b6670;font:500 11px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}.workflow-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;color:#18212a;font:14px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;text-decoration:none}.workflow-item:hover,.workflow-item.active{background:#dceffb;color:#0089d7;text-decoration:none}.workflow-item.active{font-weight:600}.workflow-mark,.workflow-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 auto}.workflow-mark{border-radius:5px;background:#eaf5fd;color:#0089d7;font:600 10px/1 ui-monospace,monospace}.workflow-num{border-radius:50%;background:#dce2e7;color:#62707c;font:500 11px/1 ui-monospace,monospace}.workflow-item.active .workflow-num{background:#0089d7;color:#fff}.workflow-state{width:8px;height:8px;margin-left:auto;border-radius:50%;flex:0 0 auto}.workflow-state.todo{background:#dce2e7}.workflow-state.progress{background:#d28600}.tool-shell{display:flex;min-width:0;flex:1;flex-direction:column;height:100dvh;overflow:hidden}
+.tool-shell .appbar{flex:0 0 auto}.tool-shell>main{flex:1;min-height:0;height:auto}.tool-shell .app{height:100%;min-height:0}.tool-shell .app>aside{height:100%}.tool-shell .app>main{height:100%}
+@media(max-width:860px){html,body{height:auto;overflow:auto}.workflow-shell{display:block;height:auto}.workflow-sidebar{display:none}.tool-shell{height:auto;min-height:100vh;overflow:visible}.tool-shell>main{min-height:auto}.tool-shell .app{height:auto}.tool-shell .app>aside,.tool-shell .app>main{height:auto}}
+
+</style>
+</head>
+<body>
+  <div class="workflow-shell">
+<aside class="workflow-sidebar" id="workflow-sidebar" aria-label="蛋白设计工作流导航">
+  <div class="workflow-brand">蛋白设计工作台<small>Protein Design Workbench</small></div>
+  <nav class="workflow-nav">
+    <div class="workflow-section"><div class="workflow-section-title">概览</div><a href="index.html" class="workflow-item"><span class="workflow-mark">总</span>工作流总览</a></div>
+    <div class="workflow-section"><div class="workflow-section-title">设计流程</div>
+      <a href="step-target.html" class="workflow-item"><span class="workflow-num">1</span>靶点分析<span class="workflow-state todo"></span></a>
+      <a href="step-scaffold.html" class="workflow-item active" aria-current="page"><span class="workflow-num">2</span>骨架设计<span class="workflow-state progress"></span></a>
+      <a href="step-sequence.html" class="workflow-item"><span class="workflow-num">3</span>序列优化<span class="workflow-state todo"></span></a>
+      <a href="step-structure.html" class="workflow-item"><span class="workflow-num">4</span>结构预测<span class="workflow-state todo"></span></a>
+      <a href="step-molecular.html" class="workflow-item"><span class="workflow-num">5</span>分子动力学<span class="workflow-state todo"></span></a>
+      <a href="step-binding.html" class="workflow-item"><span class="workflow-num">6</span>结合分析<span class="workflow-state todo"></span></a>
+      <a href="step-alignment.html" class="workflow-item"><span class="workflow-num">7</span>序列比对<span class="workflow-state progress"></span></a>
+    </div>
+  </nav>
+</aside>
+  <div class="tool-shell">
+  <header class="appbar" data-od-id="workbench-header">
+    <div class="appbar-main">
+      <a href="step-scaffold.html" class="back-link" data-od-id="back-to-scaffold">返回骨架设计</a>
+      <div class="title-stack">
+        <h1 data-od-id="workbench-title">PDB 链复制与骨架对齐工作台</h1>
+        <p>复制完整链，并用指定残基的 N、CA、C、O 主链原子进行刚体对齐。</p>
+      </div>
+    </div>
+    <div class="local-state" aria-label="本地浏览器计算"><span class="state-mark" aria-hidden="true"></span>本地浏览器计算</div>
+  </header>
+
+  <main data-od-id="workbench-main">
+    <aside class="control-rail" data-od-id="control-rail">
+      <div class="rail-intro">
+        <h2>结构操作</h2>
+        <p>按顺序载入结构、确认链与残基编号，再复制或对齐目标链。所有修改仅保存在当前浏览器会话中。</p>
+      </div>
+      <div class="operation-group">
+        <section class="operation" data-od-id="load-and-export">
+          <div class="operation-heading"><h3>载入与导出</h3><span class="operation-index">01</span></div>
+          <label class="file-input" for="pdb-file" data-od-id="pdb-file-label"><strong>选择 PDB 文件</strong><span>支持 .pdb、.ent 与 .pqr</span><input id="pdb-file" type="file" accept=".pdb,.ent,.pqr" hidden></label>
+          <p class="help">将读取 ATOM 与 HETATM 坐标记录。导出时会依当前坐标重新编号。</p>
+          <div class="action-row"><button id="export" type="button" disabled data-od-id="export-pdb">导出当前 PDB</button><button id="reset" type="button" disabled data-od-id="reset-structure">恢复已加载结构</button></div>
+          <p id="status" class="status" aria-live="polite">请选择一个 PDB 文件以开始。</p>
+        </section>
+
+        <section class="operation" data-od-id="chain-inspection">
+          <div class="operation-heading"><h3>链与残基编号</h3><span class="operation-index">02</span></div>
+          <div id="chain-list" class="empty">尚未加载结构。</div>
+        </section>
+
+        <section class="operation" data-od-id="chain-duplication">
+          <div class="operation-heading"><h3>复制完整链</h3><span class="operation-index">03</span></div>
+          <p class="help">复制源链中的蛋白、配体及替代构象。新链编号必须为单个字符。</p>
+          <div class="field-row"><div class="field"><label for="copy-source">源链</label><select id="copy-source" disabled></select></div><div class="field"><label for="new-chain">新链编号</label><input id="new-chain" maxlength="1" placeholder="例如 B" disabled></div></div>
+          <div class="action-row single"><button id="copy-chain" type="button" disabled data-od-id="copy-chain">复制并命名链</button></div>
+        </section>
+
+        <section class="operation" data-od-id="backbone-alignment">
+          <div class="operation-heading"><h3>残基主链对齐</h3><span class="operation-index">04</span></div>
+          <p class="help">移动链将整体刚体移动，目标链保持不动。计算使用两残基的 N、CA、C、O 原子最小二乘叠合。</p>
+          <div class="field-row"><div class="field"><label for="move-chain">移动链</label><select id="move-chain" disabled></select></div><div class="field"><label for="move-residue">移动残基编号</label><select id="move-residue" disabled></select></div></div>
+          <div class="field-row"><div class="field"><label for="target-chain">目标链</label><select id="target-chain" disabled></select></div><div class="field"><label for="target-residue">目标残基编号</label><select id="target-residue" disabled></select></div></div>
+          <div class="action-row single"><button id="align" class="action-primary" type="button" disabled data-od-id="align-backbone">移动链并对齐骨架</button></div>
+        </section>
+      </div>
+    </aside>
+
+    <section class="workspace" data-od-id="model-workspace">
+      <div class="workspace-head"><p class="workspace-label">三维结构</p></div>
+      <div class="model-stage" data-od-id="model-stage">
+        <div id="viewer" aria-label="PDB 三维结构查看器">
+          <div class="viewer-drop-state" id="viewer-drop-state">
+            <div class="drop-orb" aria-hidden="true">◇</div>
+            <h2>拖入 PDB 或 CIF 文件</h2>
+            <p>支持 PDB、ENT、PQR 与 CIF 结构文件。载入后可复制链并执行主链刚体对齐。</p>
+            <button type="button" class="viewer-upload-btn" id="viewer-upload-btn">选择文件</button>
+          </div>
+        </div>
+        <div class="viewer-note"><strong>按链固定分配颜色</strong><span>对齐完成后，操作状态将报告四个主链原子的 RMSD。</span></div>
+      </div>
+    </section>
+  </main>
+  </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const css = getComputedStyle(document.documentElement);
+    const palette = ['#1b61c9', '#006400', '#eab308', '#dc2626', '#333333', '#181d26'];
+    const state = { original: [], atoms: [], viewer: null, colors: new Map() };
+    const $ = id => document.getElementById(id);
+    const controls = ['export','reset','copy-source','new-chain','copy-chain','move-chain','move-residue','target-chain','target-residue','align'];
+    function message(text, kind='') { const node=$('status'); node.textContent=text; node.className=`status ${kind}`; }
+    function padded(line) { return `${line}${' '.repeat(80)}`.slice(0,80); }
+    function parsePdb(text) { return text.split(/\r?\n/).filter(line => line.startsWith('ATOM  ') || line.startsWith('HETATM')).map(line => { const p=padded(line); return { record:p.slice(0,6), name:p.slice(12,16).trim(), altloc:p.slice(16,17), resname:p.slice(17,20).trim(), chain:p.slice(21,22).trim() || '_', resid:p.slice(22,26).trim(), icode:p.slice(26,27), x:Number(p.slice(30,38)), y:Number(p.slice(38,46)), z:Number(p.slice(46,54)), tail:p.slice(54,80) }; }).filter(a => Number.isFinite(a.x) && Number.isFinite(a.y) && Number.isFinite(a.z)); }
+    function cloneAtoms(atoms) { return atoms.map(atom => ({...atom})); }
+    function chains() { return [...new Set(state.atoms.map(atom => atom.chain))]; }
+    function chainResidues(chain) { const seen=new Set(), out=[]; state.atoms.filter(a => a.chain===chain && a.record==='ATOM  ').forEach(a => { const id=`${a.resid}${a.icode.trim()}`; if (!seen.has(id)) { seen.add(id); out.push(id); } }); return out; }
+    function chainColor(chain) { if (!state.colors.has(chain)) state.colors.set(chain,palette[state.colors.size % palette.length]); return state.colors.get(chain); }
+    function updateSelect(selectId, values, selected) { const node=$(selectId); node.innerHTML=''; values.forEach(value => { const option=document.createElement('option'); option.value=value; option.textContent=value; if (value===selected) option.selected=true; node.appendChild(option); }); }
+    function updateResidueSelectors() { const m=$('move-chain').value, t=$('target-chain').value; updateSelect('move-residue',chainResidues(m),$('move-residue').value); updateSelect('target-residue',chainResidues(t),$('target-residue').value); }
+    function updateControls() { const ids=chains(); controls.forEach(id => $(id).disabled=!ids.length); updateSelect('copy-source',ids,$('copy-source').value); updateSelect('move-chain',ids,$('move-chain').value); updateSelect('target-chain',ids,$('target-chain').value || ids[0]); updateResidueSelectors(); }
+    function renderChainList() { const root=$('chain-list'); const ids=chains(); if (!ids.length) { root.className='empty'; root.textContent='尚未加载结构。'; return; } root.className='chain-list'; root.innerHTML=''; ids.forEach(chain => { const atomCount=state.atoms.filter(a=>a.chain===chain).length, residues=chainResidues(chain); const row=document.createElement('div'); row.className='chain-row'; row.innerHTML=`<span class="swatch" style="background:${chainColor(chain)}"></span><div><strong>链 ${chain} <span class="badge">${atomCount} 个原子</span></strong><div class="chain-meta">${residues.length} 个标准氨基酸残基，编号：</div><div class="residues">${residues.join(', ') || '无标准氨基酸记录'}</div></div>`; root.appendChild(row); }); }
+    function pdbText() { let serial=1, lastChain=null; const lines=['REMARK Generated by PDB chain alignment workbench']; for (const atom of state.atoms) { if (lastChain!==null && atom.chain!==lastChain) lines.push('TER'); const name=atom.name.length<4 && !/^\d/.test(atom.name) ? ` ${atom.name.padEnd(3)}` : atom.name.padEnd(4).slice(0,4); const residue=atom.resid.padStart(4); const chain=atom.chain==='_' ? ' ' : atom.chain; lines.push(`${atom.record}${String(serial).padStart(5)} ${name}${atom.altloc}${atom.resname.padStart(3)} ${chain}${residue}${atom.icode}   ${atom.x.toFixed(3).padStart(8)}${atom.y.toFixed(3).padStart(8)}${atom.z.toFixed(3).padStart(8)}${atom.tail}`.slice(0,80)); serial++; lastChain=atom.chain; } lines.push('TER','END'); return lines.join('\n')+'\n'; }
+    function render() { if (!state.viewer || !window.$3Dmol) return; state.viewer.clear(); state.viewer.addModel(pdbText(),'pdb'); chains().forEach(chain => { const color=chainColor(chain), viewerChain=chain==='_' ? '' : chain; state.viewer.setStyle({chain:viewerChain,hetflag:false},{cartoon:{color}}); state.viewer.setStyle({chain:viewerChain,hetflag:true},{stick:{color,radius:.18},sphere:{color,radius:.42}}); }); state.viewer.zoomTo(); state.viewer.render(); }
+    function refresh() { renderChainList(); updateControls(); render(); }
+    function centroid(points) { return [0,1,2].map(i => points.reduce((sum,p)=>sum+p[i],0)/points.length); }
+    function jacobi(matrix) { const a=matrix.map(row=>row.slice()), n=a.length, vectors=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0)); for(let step=0;step<100;step++){ let p=0,q=1,max=0; for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(Math.abs(a[i][j])>max){max=Math.abs(a[i][j]);p=i;q=j;} if(max<1e-14)break; const theta=.5*Math.atan2(2*a[p][q],a[q][q]-a[p][p]),c=Math.cos(theta),s=Math.sin(theta); for(let i=0;i<n;i++)if(i!==p&&i!==q){const aip=a[i][p],aiq=a[i][q];a[i][p]=a[p][i]=c*aip-s*aiq;a[i][q]=a[q][i]=s*aip+c*aiq;} const app=a[p][p],aqq=a[q][q],apq=a[p][q];a[p][p]=c*c*app-2*s*c*apq+s*s*aqq;a[q][q]=s*s*app+2*s*c*apq+c*c*aqq;a[p][q]=a[q][p]=0;for(let i=0;i<n;i++){const vip=vectors[i][p],viq=vectors[i][q];vectors[i][p]=c*vip-s*viq;vectors[i][q]=s*vip+c*viq;}} return {values:a.map((row,i)=>row[i]),vectors}; }
+    function quaternion(source,target) { const s=[0,1,2].map(i=>[0,1,2].map(j=>source.reduce((sum,p,k)=>sum+p[i]*target[k][j],0))); const [[xx,xy,xz],[yx,yy,yz],[zx,zy,zz]]=s,tr=xx+yy+zz; const horn=[[tr,yz-zy,zx-xz,xy-yx],[yz-zy,xx-yy-zz,xy+yx,zx+xz],[zx-xz,xy+yx,yy-xx-zz,yz+zy],[xy-yx,zx+xz,yz+zy,zz-xx-yy]]; const result=jacobi(horn),index=result.values.indexOf(Math.max(...result.values)); const q=result.vectors.map(row=>row[index]),length=Math.hypot(...q); return q.map(v=>v/length); }
+    function rotate(point,q) { const [w,x,y,z]=q,[px,py,pz]=point; return [(1-2*(y*y+z*z))*px+2*(x*y-z*w)*py+2*(x*z+y*w)*pz,2*(x*y+z*w)*px+(1-2*(x*x+z*z))*py+2*(y*z-x*w)*pz,2*(x*z-y*w)*px+2*(y*z+x*w)*py+(1-2*(x*x+y*y))*pz]; }
+    function backbone(chain,residue) { const found={}; state.atoms.filter(a=>a.chain===chain&&`${a.resid}${a.icode.trim()}`===residue&&['N','CA','C','O'].includes(a.name)&&[' ','A'].includes(a.altloc)).forEach(a=>{if(!found[a.name])found[a.name]=[a.x,a.y,a.z];}); const missing=['N','CA','C','O'].filter(name=>!found[name]); if(missing.length)throw new Error(`链 ${chain} 残基 ${residue} 缺少主链原子：${missing.join(', ')}`); return ['N','CA','C','O'].map(name=>found[name]); }
+    function align() { try { const moving=$('move-chain').value, moveResidue=$('move-residue').value, target=$('target-chain').value, targetResidue=$('target-residue').value; const source=backbone(moving,moveResidue), goal=backbone(target,targetResidue), sourceCenter=centroid(source), goalCenter=centroid(goal); const q=quaternion(source.map(p=>p.map((v,i)=>v-sourceCenter[i])),goal.map(p=>p.map((v,i)=>v-goalCenter[i]))); const mapped=source.map(p=>rotate(p.map((v,i)=>v-sourceCenter[i]),q).map((v,i)=>v+goalCenter[i])); const rmsd=Math.sqrt(mapped.reduce((sum,p,i)=>sum+p.reduce((s,v,j)=>s+(v-goal[i][j])**2,0),0)/4); state.atoms.filter(a=>a.chain===moving).forEach(a=>{const moved=rotate([a.x-sourceCenter[0],a.y-sourceCenter[1],a.z-sourceCenter[2]],q); [a.x,a.y,a.z]=moved.map((v,i)=>v+goalCenter[i]);}); refresh(); message(`已移动链 ${moving}：${moving}${moveResidue} → ${target}${targetResidue}；主链 RMSD = ${rmsd.toFixed(4)} Å。`,'success'); } catch(error) { message(error.message,'error'); } }
+    $('viewer-upload-btn').addEventListener('click',()=>$('pdb-file').click());
+    $('pdb-file').addEventListener('change',async event=>{const file=event.target.files[0];if(!file)return;const atoms=parsePdb(await file.text());if(!atoms.length){message('未读取到有效 ATOM/HETATM 坐标记录。','error');return;}state.original=cloneAtoms(atoms);$('viewer-drop-state').hidden=true;state.atoms=cloneAtoms(atoms);state.colors.clear();refresh();message(`已加载 ${file.name}：${atoms.length} 条坐标记录，${chains().length} 条链。`,'success');});
+    $('copy-chain').addEventListener('click',()=>{const source=$('copy-source').value,newChain=$('new-chain').value.trim();if(!/^[A-Za-z0-9]$/.test(newChain)){message('新链编号必须是一个英文字母或数字。','error');return;}if(chains().includes(newChain)){message(`链 ${newChain} 已存在，请使用另一个编号。`,'error');return;}const copied=state.atoms.filter(a=>a.chain===source).map(a=>({...a,chain:newChain}));if(!copied.length){message(`未找到链 ${source}。`,'error');return;}state.atoms.push(...copied);$('new-chain').value='';refresh();$('move-chain').value=newChain;updateResidueSelectors();render();message(`已复制链 ${source} 为链 ${newChain}（${copied.length} 条坐标记录）。`,'success');});
+    $('move-chain').addEventListener('change',updateResidueSelectors); $('target-chain').addEventListener('change',updateResidueSelectors); $('align').addEventListener('click',align);
+    $('reset').addEventListener('click',()=>{state.atoms=cloneAtoms(state.original);state.colors.clear();refresh();message('已恢复为刚加载时的结构。','success');});
+    $('export').addEventListener('click',()=>{const blob=new Blob([pdbText()],{type:'chemical/x-pdb'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='chain_aligned_structure.pdb';link.click();URL.revokeObjectURL(url);message('已导出当前 PDB 文件。','success');});
+    if (window.$3Dmol) {
+      state.viewer = $3Dmol.createViewer($('viewer'), {backgroundColor: css.getPropertyValue('--surface').trim(), antialias: true});
+      const resizeViewer = () => { state.viewer.resize(); state.viewer.render(); };
+      if (window.ResizeObserver) new ResizeObserver(resizeViewer).observe($('viewer'));
+      else window.addEventListener('resize', resizeViewer);
+    } else message('3Dmol.js 未加载，请检查网络后刷新页面。', 'error');
+  });
+  </script>
+</body>
+</html>

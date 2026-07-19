@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RFdiffusion3 骨架输入构建器 — 蛋白设计工作台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js"></script>
+<style>
+:root{
+  color-scheme: dark;
+  --ore:#0d110c;        /* uranium-ore near-black, green cast */
+  --hutch:#141a13;      /* darkened crystallography hutch */
+  --hutch2:#1b2319;     /* raised panel */
+  --line:#2c3a29;       /* hairline */
+  --phosphor:#8fd66f;   /* muted phosphor screen green */
+  --phosphor-dim:#5c8a4d;
+  --uranyl:#e6ff5a;     /* uranyl-glass fluorescence — signature */
+  --amber:#e6a94c;      /* mineral amber — linkers / caution */
+  --bone:#e9ecdd;       /* bone paper text */
+  --bone-dim:#9aa78c;
+  --danger:#e8734a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:
+    radial-gradient(1100px 620px at 78% -8%, rgba(230,255,90,.06), transparent 60%),
+    radial-gradient(900px 500px at 8% 108%, rgba(143,214,111,.05), transparent 55%),
+    var(--ore);
+  color:var(--bone);
+  font-family:"Space Grotesk",system-ui,sans-serif;
+  font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--uranyl)}
+.wrap{max-width:1500px;margin:0 auto;padding:22px 26px 80px}
+/* ---------- header ---------- */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);padding-bottom:18px}
+.brand-eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--phosphor-dim)}
+.brand-title{font-size:30px;font-weight:700;letter-spacing:-.01em;margin:6px 0 0;line-height:1.05}
+.brand-title .glow{color:var(--uranyl);text-shadow:0 0 22px rgba(230,255,90,.35)}
+.brand-sub{color:var(--bone-dim);font-size:13.5px;margin-top:7px;max-width:52ch}
+.load-cluster{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font-family:"IBM Plex Mono",monospace;font-size:12.5px;letter-spacing:.03em;
+  background:var(--hutch2);color:var(--bone);border:1px solid var(--line);
+  padding:10px 15px;border-radius:9px;cursor:pointer;transition:.16s;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
+.btn:hover{border-color:var(--phosphor);color:var(--phosphor)}
+.btn.primary{background:linear-gradient(180deg,rgba(230,255,90,.16),rgba(230,255,90,.05));
+  border-color:rgba(230,255,90,.5);color:var(--uranyl)}
+.btn.primary:hover{border-color:var(--uranyl);box-shadow:0 0 0 1px rgba(230,255,90,.25),0 8px 24px -12px rgba(230,255,90,.5)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+/* ---------- layout ---------- */
+.stage{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.9fr);gap:20px;margin-top:20px}
+@media(max-width:980px){.stage{grid-template-columns:1fr}}
+.panel{background:linear-gradient(180deg,var(--hutch),var(--ore));border:1px solid var(--line);
+  border-radius:14px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.18)}
+.panel-head h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0;color:var(--bone-dim);
+  font-family:"IBM Plex Mono",monospace;font-weight:500}
+/* ---------- viewer ---------- */
+#viewhost{position:relative;width:100%;height:560px;background:
+  repeating-linear-gradient(0deg,rgba(143,214,111,.03) 0 1px,transparent 1px 34px),
+  repeating-linear-gradient(90deg,rgba(143,214,111,.03) 0 1px,transparent 1px 34px),var(--ore)}
+#viewer{position:absolute;inset:0}
+.drop-veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:12px;padding:30px;z-index:5;transition:.18s}
+.drop-veil.hide{opacity:0;pointer-events:none}
+.drop-veil.drag{background:rgba(230,255,90,.06);outline:2px dashed rgba(230,255,90,.5);outline-offset:-16px}
+.drop-ring{width:64px;height:64px;border-radius:50%;border:1px solid var(--phosphor-dim);
+  display:grid;place-items:center;color:var(--uranyl);font-size:24px;
+  box-shadow:0 0 0 8px rgba(143,214,111,.05)}
+.drop-veil h3{margin:0;font-size:17px}
+.drop-veil p{margin:0;color:var(--bone-dim);font-size:13px;max-width:40ch}
+.view-tools{position:absolute;left:12px;bottom:12px;z-index:6;display:flex;gap:6px;flex-wrap:wrap}
+.chip-btn{font-family:"IBM Plex Mono",monospace;font-size:11px;background:rgba(13,17,12,.82);
+  border:1px solid var(--line);color:var(--bone-dim);padding:6px 10px;border-radius:7px;cursor:pointer}
+.chip-btn.on{color:var(--uranyl);border-color:rgba(230,255,90,.5)}
+.hint-pill{position:absolute;right:12px;top:12px;z-index:6;font-family:"IBM Plex Mono",monospace;
+  font-size:11px;color:var(--bone-dim);background:rgba(13,17,12,.8);border:1px solid var(--line);
+  padding:6px 10px;border-radius:20px}
+/* ---------- builder panel ---------- */
+.builder{padding:6px 16px 18px}
+.meta-row{display:flex;gap:14px;flex-wrap:wrap;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+  color:var(--bone-dim);padding:12px 2px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.meta-row b{color:var(--phosphor);font-weight:600}
+.frag{border:1px solid var(--line);border-radius:11px;margin-top:12px;overflow:hidden;background:rgba(0,0,0,.14)}
+.frag-head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
+.swatch{width:12px;height:12px;border-radius:3px;flex:none;box-shadow:0 0 10px currentColor}
+.frag-name{font-weight:600;font-size:14px}
+.frag-tag{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--bone-dim);margin-left:auto}
+.frag-body{padding:0 12px 12px;display:none}
+.frag.open .frag-body{display:block}
+.frag-caret{color:var(--bone-dim);transition:.16s;font-size:12px}
+.frag.open .frag-caret{transform:rotate(90deg);color:var(--phosphor)}
+.reslist{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 4px}
+.res{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:4px 7px;border-radius:6px;cursor:pointer;
+  border:1px solid var(--line);color:var(--bone-dim);background:rgba(255,255,255,.02);transition:.12s;user-select:none}
+.res:hover{border-color:var(--phosphor-dim);color:var(--bone)}
+.res.site{background:rgba(230,255,90,.16);border-color:rgba(230,255,90,.6);color:var(--uranyl);
+  box-shadow:0 0 10px -3px rgba(230,255,90,.5)}
+.res.lig{background:rgba(230,169,76,.14);border-color:rgba(230,169,76,.55);color:var(--amber)}
+.mini{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--bone-dim);margin:10px 0 4px;
+  letter-spacing:.05em;text-transform:uppercase}
+.field-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+input[type=text],input[type=number]{font-family:"IBM Plex Mono",monospace;background:var(--ore);
+  border:1px solid var(--line);color:var(--bone);border-radius:7px;padding:7px 9px;font-size:12.5px;width:78px}
+input[type=text].wide{width:100%}
+input:focus{outline:none;border-color:var(--phosphor)}
+label.opt{display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--bone-dim);cursor:pointer}
+/* ---------- contig ribbon (signature) ---------- */
+.ribbon-wrap{margin-top:22px}
+.ribbon-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.ribbon-head h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;margin:0;color:var(--bone-dim);
+  font-family:"IBM Plex Mono",monospace;font-weight:500}
+.ribbon-legend{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--bone-dim);display:flex;gap:16px}
+.ribbon-legend span{display:inline-flex;gap:6px;align-items:center}
+.lg-dot{width:20px;height:8px;border-radius:2px}
+.ribbon{display:flex;align-items:stretch;gap:0;min-height:64px;border:1px solid var(--line);
+  border-radius:12px;background:rgba(0,0,0,.22);padding:12px;overflow-x:auto}
+.seg{display:flex;flex-direction:column;justify-content:center;align-items:center;border-radius:7px;
+  padding:6px 4px;min-width:58px;font-family:"IBM Plex Mono",monospace;position:relative}
+.seg.frag{color:var(--ore)}
+.seg.frag .seg-len{font-size:15px;font-weight:600}
+.seg.frag .seg-lab{font-size:10px;opacity:.8}
+.seg.link{min-width:74px;color:var(--amber);background:
+  repeating-linear-gradient(90deg,rgba(230,169,76,.5) 0 6px,transparent 6px 12px);
+  background-size:100% 2px;background-position:0 50%;background-repeat:no-repeat;
+  border:1px dashed rgba(230,169,76,.5);margin:0 -1px}
+.seg.link .seg-len{font-size:13px;font-weight:600;background:var(--ore);padding:0 6px}
+.seg.link .seg-lab{font-size:9px;letter-spacing:.1em;text-transform:uppercase;opacity:.8;background:var(--ore);padding:0 4px}
+.seg.brk{min-width:34px;color:var(--danger);border:1px dashed rgba(232,115,74,.6);background:transparent}
+/* ---------- output ---------- */
+.out-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+@media(max-width:980px){.out-grid{grid-template-columns:1fr}}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+  border-bottom:1px solid var(--line);background:rgba(0,0,0,.2)}
+.code-head h3{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone-dim);
+  font-family:"IBM Plex Mono",monospace;font-weight:500}
+pre{margin:0;padding:14px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.6;
+  color:var(--bone);overflow-x:auto;white-space:pre;max-height:340px}
+pre .k{color:var(--phosphor)}
+pre .v{color:var(--uranyl)}
+pre .c{color:var(--bone-dim)}
+pre .n{color:var(--amber)}
+.copy-btn{font-family:"IBM Plex Mono",monospace;font-size:11px;background:transparent;border:1px solid var(--line);
+  color:var(--bone-dim);padding:5px 10px;border-radius:6px;cursor:pointer}
+.copy-btn:hover{color:var(--uranyl);border-color:rgba(230,255,90,.5)}
+.warn{margin-top:16px;border:1px solid rgba(230,169,76,.4);background:rgba(230,169,76,.06);
+  border-radius:11px;padding:12px 15px;font-size:13px;color:var(--bone)}
+.warn b{color:var(--amber)}
+.warn ul{margin:8px 0 0;padding-left:20px;color:var(--bone-dim)}
+.warn li{margin:3px 0}
+.foot{margin-top:26px;padding-top:16px;border-top:1px solid var(--line);color:var(--bone-dim);
+  font-size:12px;font-family:"IBM Plex Mono",monospace;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.foot a{color:var(--phosphor-dim)}
+.empty-note{color:var(--bone-dim);font-size:13px;padding:20px 4px;text-align:center;font-style:italic}
+/* ---------- fixed-atom interaction ---------- */
+.select-dock{position:absolute;right:12px;bottom:12px;z-index:7;width:min(342px,calc(100% - 24px));
+  background:rgba(13,17,12,.94);border:1px solid var(--line);border-radius:10px;padding:9px 10px;
+  box-shadow:0 14px 32px rgba(0,0,0,.28)}
+.select-dock[hidden]{display:none}
+.dock-label{font:10px "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--bone-dim);margin:0 0 6px}
+.tool-row{display:flex;gap:4px;flex-wrap:wrap}
+.tool-btn{font:11px "IBM Plex Mono",monospace;background:transparent;color:var(--bone-dim);border:1px solid var(--line);border-radius:6px;padding:5px 7px;cursor:pointer}
+.tool-btn:hover{border-color:var(--phosphor-dim);color:var(--bone)}
+.tool-btn.on.add{background:rgba(143,214,111,.13);border-color:rgba(143,214,111,.6);color:var(--phosphor)}
+.tool-btn.on.remove{background:rgba(232,115,74,.12);border-color:rgba(232,115,74,.65);color:var(--danger)}
+.select-status{font:11px "IBM Plex Mono",monospace;color:var(--bone-dim);margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fixed-count{color:var(--uranyl)}
+.yaml-editor{width:100%;height:342px;resize:vertical;border:0;outline:0;display:block;background:#0a0d09;color:var(--bone);
+  padding:14px;font:12.5px/1.6 "IBM Plex Mono",monospace;tab-size:2}
+.yaml-editor:focus{box-shadow:inset 0 0 0 1px var(--phosphor)}
+.yaml-actions{display:flex;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid var(--line);background:rgba(0,0,0,.14)}
+.yaml-state{font:11px "IBM Plex Mono",monospace;color:var(--bone-dim);margin-left:auto}
+.yaml-state.ok{color:var(--phosphor)}
+.yaml-state.err{color:var(--danger)}
+.fixed-badge{font:10px "IBM Plex Mono",monospace;color:var(--uranyl);margin-left:5px}
+
+
+/* ---------- RFdiffusion3 configuration cockpit redesign ---------- */
+:root{--ore:#08111f;--hutch:#0d1b2c;--hutch2:#13263b;--line:#29435a;--phosphor:#7fd5f4;--phosphor-dim:#4f8eaa;--uranyl:#ffd166;--amber:#e7a852;--bone:#edf5fb;--bone-dim:#a4b9c8;--danger:#fa7d6b;--signal:#55e3ae}
+body{background:radial-gradient(920px 540px at 82% -12%,rgba(127,213,244,.12),transparent 60%),radial-gradient(620px 480px at 3% 105%,rgba(173,155,255,.08),transparent 62%),#08111f}.wrap{max-width:1640px;padding:24px 28px 72px}.top{align-items:center;padding-bottom:21px}.brand-eyebrow{color:var(--phosphor);letter-spacing:.26em}.brand-title{font-size:34px}.brand-title .glow{color:var(--uranyl);text-shadow:0 0 26px rgba(255,209,102,.22)}.brand-sub{max-width:66ch}.btn{border-radius:4px;background:#10233a}.btn.primary{background:linear-gradient(135deg,rgba(127,213,244,.22),rgba(127,213,244,.08));border-color:rgba(127,213,244,.58);color:#dff8ff}.panel{border-radius:8px;background:linear-gradient(155deg,rgba(15,33,53,.98),rgba(7,16,29,.98));box-shadow:0 14px 34px rgba(0,0,0,.12)}.panel-head,.code-head{background:rgba(1,8,18,.30)}.panel-head h2,.ribbon-head h2,.code-head h3{color:var(--phosphor);letter-spacing:.13em}#viewhost{height:590px;background:repeating-linear-gradient(0deg,rgba(127,213,244,.035) 0 1px,transparent 1px 34px),repeating-linear-gradient(90deg,rgba(127,213,244,.035) 0 1px,transparent 1px 34px),#08111f}.stage{grid-template-columns:minmax(560px,1.2fr) minmax(410px,.8fr);gap:18px}.builder{max-height:590px;overflow:auto;scrollbar-color:var(--line) transparent}.frag{border-radius:7px}.res{border-radius:4px}.ribbon{border-radius:7px}.seg{border-radius:4px}.seg.frag{color:#07101c}.out-grid{grid-template-columns:1.12fr .88fr}.yaml-editor{background:#07101c}.warn{border-radius:7px;background:rgba(231,168,82,.07)}
+.run-strip{display:grid;grid-template-columns:1.7fr repeat(3,minmax(120px,.58fr));gap:1px;margin:18px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--line)}.run-cell{background:rgba(13,27,44,.96);padding:13px 15px;min-height:73px;display:flex;flex-direction:column;justify-content:center;gap:3px}.run-cell .label,.cfg-label{font:10px/1.2 "IBM Plex Mono",monospace;letter-spacing:.13em;text-transform:uppercase;color:var(--bone-dim)}.run-cell strong{font:600 20px/1 "Space Grotesk",sans-serif;color:var(--bone)}.run-cell .status{color:var(--signal);font:600 13px "IBM Plex Mono",monospace}.run-cell small{color:var(--bone-dim)}.run-identity{display:flex;align-items:center;gap:12px}.run-orb{width:34px;height:34px;border:1px solid var(--uranyl);border-radius:50%;display:grid;place-items:center;color:var(--uranyl);box-shadow:0 0 17px rgba(255,209,102,.18);font-size:15px}.config-intro{padding:13px 2px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}.config-intro strong{font-size:15px}.config-intro p{font-size:12.5px;color:var(--bone-dim);margin:4px 0 0}.cfg-group{border-top:1px solid var(--line);padding:13px 0 1px;margin-top:11px}.cfg-head{display:flex;align-items:baseline;gap:8px;margin-bottom:7px}.cfg-head h3{font-size:13px;margin:0}.cfg-head span{color:var(--bone-dim);font:10px "IBM Plex Mono",monospace}.cfg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.cfg-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.cfg-field label{display:block;color:var(--bone-dim);font:10px "IBM Plex Mono",monospace;margin-bottom:4px}.cfg-field input,.cfg-field select{width:100%;background:#07101c;border:1px solid var(--line);color:var(--bone);border-radius:4px;padding:7px 8px;font:12px "IBM Plex Mono",monospace}.cfg-field select{height:33px}.cfg-field input:focus,.cfg-field select:focus{outline:1px solid var(--phosphor);border-color:var(--phosphor)}.cfg-checks{display:flex;gap:9px;flex-wrap:wrap;margin:9px 0 4px}.cfg-checks label{font-size:11.5px}.cfg-note{font-size:11px;color:var(--bone-dim);margin:7px 0 0}.cfg-note b{color:var(--uranyl);font-weight:500}.param-alert{font:11px/1.45 "IBM Plex Mono",monospace;color:var(--bone-dim);padding:8px 10px;margin-top:12px;border-left:2px solid var(--phosphor);background:rgba(127,213,244,.055)}.param-alert.warn-state{border-color:var(--amber);color:#e6c18a}.param-alert.error-state{border-color:var(--danger);color:#ffad9e}
+@media(max-width:1050px){.stage{grid-template-columns:1fr}.builder{max-height:none}.run-strip{grid-template-columns:1fr 1fr}.run-cell:first-child{grid-column:1/-1}}@media(max-width:620px){.wrap{padding:16px 14px 48px}.run-strip,.cfg-grid,.cfg-grid.three{grid-template-columns:1fr}.out-grid{grid-template-columns:1fr}.brand-title{font-size:27px}#viewhost{height:470px}.run-cell:first-child{grid-column:auto}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+/* Protein Design Workbench shell and visual language */
+:root{color-scheme:light;--bg:oklch(98% .005 250);--surface:oklch(100% 0 0);--surface-raised:oklch(99% .003 250);--fg:oklch(22% .02 240);--muted:oklch(50% .018 240);--border:oklch(90% .008 240);--border-strong:oklch(82% .014 240);--accent:oklch(55% .18 240);--accent-hover:oklch(49% .18 240);--accent-soft:oklch(95% .03 240);--positive:oklch(52% .14 155);--warning:oklch(62% .15 75);--danger:oklch(58% .18 28);--viewer-bg:oklch(20% .014 240);--viewer-fg:oklch(92% .008 240);--ore:var(--bg);--hutch:var(--surface);--hutch2:var(--surface-raised);--line:var(--border);--phosphor:var(--accent);--phosphor-dim:var(--muted);--uranyl:var(--accent);--amber:var(--warning);--bone:var(--fg);--bone-dim:var(--muted)}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}.app{display:flex;min-height:100vh}.sidebar{width:260px;flex:none;display:flex;flex-direction:column;padding:24px 0;background:var(--surface);border-right:1px solid var(--border)}.sidebar-brand{padding:0 20px 20px;border-bottom:1px solid var(--border);font:600 16px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}.sidebar-brand small{display:block;margin-top:4px;color:var(--muted);font:400 12px/1.4 inherit}.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}.nav-section{padding:0 12px;margin-bottom:8px}.nav-section-title{padding:8px 8px 6px;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;color:var(--fg);font-size:14px;text-decoration:none}.nav-item:hover,.nav-item.active{background:var(--accent-soft);color:var(--accent)}.nav-item.active{font-weight:500}.nav-mark,.step-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:none}.nav-mark{border-radius:5px;background:var(--accent-soft);color:var(--accent);font:600 10px/1 ui-monospace,monospace}.step-num{border-radius:50%;background:var(--border);color:var(--muted);font:500 11px/1 ui-monospace,monospace}.nav-item.active .step-num{background:var(--accent);color:var(--surface)}.status{width:8px;height:8px;margin-left:auto;border-radius:50%;flex:none}.status-todo{background:var(--border)}.status-progress{background:var(--warning)}.main{display:flex;min-width:0;flex:1;flex-direction:column}.main-header{display:flex;align-items:center;gap:16px;padding:20px 32px;background:var(--surface);border-bottom:1px solid var(--border)}.main-header h1{margin:0;font-size:20px;font-weight:650}.breadcrumb{color:var(--muted);font-size:13px}.breadcrumb span{margin:0 6px}.main-body{flex:1;min-width:0}.skip-link{position:fixed;top:12px;left:12px;z-index:30;padding:10px 14px;border-radius:8px;background:var(--fg);color:var(--surface);transform:translateY(-180%)}.skip-link:focus{transform:translateY(0)}.nav-toggle,.nav-backdrop{display:none}
+.wrap{max-width:1440px;margin:0 auto;padding:32px 40px 64px}.top{align-items:center;border-color:var(--border);padding-bottom:24px}.brand-eyebrow{color:var(--accent);font-family:inherit;font-size:12px;font-weight:600;letter-spacing:.08em}.brand-title{font:650 28px/1.2 -apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif;letter-spacing:-.03em;margin-top:8px}.brand-title .glow{color:var(--accent);text-shadow:none}.brand-sub{color:var(--muted);font-size:14px;line-height:1.65;max-width:64ch}.btn{background:var(--surface);border-color:var(--border-strong);border-radius:7px;color:var(--fg);font-family:inherit;font-size:13px;font-weight:550;letter-spacing:0;padding:9px 14px}.btn:hover{background:var(--surface-raised);border-color:var(--accent);color:var(--accent)}.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:var(--surface);box-shadow:none}.panel{background:var(--surface);border-color:var(--border);border-radius:12px;box-shadow:0 1px 2px color-mix(in oklch,var(--fg) 5%,transparent)}.panel-head,.code-head{background:var(--surface-raised);border-color:var(--border)}.panel-head h2,.ribbon-head h2,.code-head h3{color:var(--fg);font-family:inherit;font-size:13px;font-weight:650;letter-spacing:0;text-transform:none}.stage{grid-template-columns:minmax(0,1.25fr) minmax(390px,.85fr);gap:20px;margin-top:24px}#viewhost{height:590px;background:var(--viewer-bg)}.drop-veil{background:var(--viewer-bg);color:var(--viewer-fg)}.drop-veil p{color:color-mix(in oklch,var(--viewer-fg) 70%,transparent)}.drop-veil .btn{background:var(--surface);color:var(--fg);border-color:var(--surface)}.drop-veil.drag{background:color-mix(in oklch,var(--accent) 18%,var(--viewer-bg));outline-color:var(--accent)}.chip-btn,.hint-pill{background:color-mix(in oklch,var(--viewer-bg) 86%,transparent);border-color:color-mix(in oklch,var(--viewer-fg) 18%,transparent);color:color-mix(in oklch,var(--viewer-fg) 74%,transparent);font-family:inherit}.chip-btn.on{background:var(--accent);border-color:var(--accent);color:var(--surface)}.select-dock{background:var(--surface);border-color:var(--border);box-shadow:0 10px 28px color-mix(in oklch,var(--fg) 20%,transparent)}.dock-label,.select-status{font-family:inherit;color:var(--muted)}.builder{background:var(--surface)}.frag{background:var(--surface-raised);border-color:var(--border);border-radius:8px}.meta-row,.config-intro,.cfg-group{border-color:var(--border);font-family:inherit;color:var(--muted)}.meta-row b{color:var(--accent)}.frag-name{color:var(--fg)}.frag-tag,.mini,.cfg-label,.run-cell .label{font-family:inherit;color:var(--muted)}.res{background:var(--surface);border-color:var(--border);border-radius:5px;color:var(--muted);font-family:inherit}.res.site{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);box-shadow:none}.cfg-field input,.cfg-field select,input[type=text],input[type=number]{background:var(--surface);border-color:var(--border-strong);color:var(--fg);font-family:inherit}.cfg-field input:focus,.cfg-field select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}.run-strip{background:var(--border);border-color:var(--border);border-radius:12px}.run-cell{background:var(--surface)}.run-cell strong{color:var(--fg)}.run-cell small{color:var(--muted)}.run-cell .status{color:var(--positive)}.run-orb{border-color:var(--accent);color:var(--accent);box-shadow:none}.param-alert{border-left-color:var(--accent);background:var(--accent-soft);color:var(--muted)}.ribbon{background:var(--surface);border-color:var(--border);border-radius:12px}.seg.frag{background:var(--accent)!important;color:var(--surface)}.seg.link,.seg.link .seg-len,.seg.link .seg-lab{background:var(--surface)}.seg.link{color:var(--warning);border-color:color-mix(in oklch,var(--warning) 55%,var(--border))}.yaml-editor,pre{background:var(--surface);color:var(--fg)}.yaml-actions{background:var(--surface-raised);border-color:var(--border)}.copy-btn,.tool-btn{background:var(--surface);border-color:var(--border-strong);color:var(--muted);font-family:inherit}.copy-btn:hover,.tool-btn:hover{border-color:var(--accent);color:var(--accent)}.tool-btn.on,.tool-btn.on.add{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}.warn{background:color-mix(in oklch,var(--warning) 9%,var(--surface));border-color:color-mix(in oklch,var(--warning) 45%,var(--border));color:var(--fg)}.warn ul,.foot{color:var(--muted)}.warn b{color:var(--warning)}
+@media(max-width:1050px){.stage{grid-template-columns:1fr}.builder{max-height:none}}@media(max-width:860px){.app{display:block}.sidebar{position:fixed;inset:0 auto 0 0;z-index:20;width:min(292px,calc(100vw - 48px));height:100dvh;transform:translateX(-105%);transition:transform .2s;box-shadow:16px 0 32px color-mix(in oklch,var(--fg) 14%,transparent)}.app.nav-open .sidebar{transform:translateX(0)}.app.nav-open .nav-backdrop{position:fixed;inset:0;z-index:19;display:block;border:0;background:color-mix(in oklch,var(--fg) 22%,transparent)}.nav-toggle{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--fg);font:600 12px/1 ui-monospace,monospace;cursor:pointer}.main-header{padding:16px 20px;gap:12px}.wrap{padding:20px}}@media(max-width:620px){.wrap{padding:16px}.brand-title{font-size:25px}#viewhost{height:470px}.run-strip{grid-template-columns:1fr}.run-cell:first-child{grid-column:auto}}
+
+/* ---------- Chain-alignment workbench visual system ---------- */
+:root{color-scheme:light;--ore:#fff;--hutch:#fff;--hutch2:#fff;--line:#e0e2e6;--phosphor:#1b61c9;--phosphor-dim:rgba(4,14,32,.69);--uranyl:#1b61c9;--amber:#eab308;--bone:#181d26;--bone-dim:rgba(4,14,32,.69);--danger:#dc2626;--signal:#006400;--fg:#181d26;--fg-2:#333;--border:#e0e2e6;--border-soft:#eef0f3;--accent:#1b61c9;--accent-hover:#254fad;--surface:#fff;--bg:#fff;--focus-ring:0 0 0 3px color-mix(in oklab,#1b61c9,transparent 70%)}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--bone);font:400 16px/1.35 Haas,-apple-system,system-ui,"Segoe UI",Roboto,sans-serif}button,input,select,textarea{font:inherit}button{min-height:42px;border:1px solid var(--border);border-radius:2px;padding:0 12px;color:var(--fg);background:var(--surface);font-size:14px;font-weight:500;letter-spacing:.02em;cursor:pointer;transition:border-color 150ms ease,background 150ms ease,transform 150ms ease}button:hover:not(:disabled){border-color:var(--fg-2)}button:active:not(:disabled){transform:translateY(1px)}button:disabled{cursor:not-allowed;opacity:.42}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.wrap{height:calc(100dvh - 72px);max-width:none;margin:0;padding:0;overflow:auto;background:oklch(98% .005 250)}.top{position:sticky;top:0;z-index:10;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:24px;min-height:72px;padding:12px clamp(16px,4vw,48px);border-bottom:1px solid var(--fg);background:var(--surface)}.brand-eyebrow{color:var(--muted);font:500 11px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.1em}.brand-title{margin:5px 0 0;color:var(--fg);font:400 clamp(22px,2.3vw,32px)/1.2 "Haas Groot Disp",Haas,-apple-system,system-ui,sans-serif;letter-spacing:-.015em}.brand-title .glow{color:var(--fg);text-shadow:none}.brand-sub{margin-top:4px;max-width:65ch;color:var(--muted);font-size:14px}.load-cluster{gap:8px}.btn{border-color:var(--border);border-radius:2px;background:var(--surface);color:var(--fg);font-family:inherit;font-size:14px;font-weight:500;letter-spacing:.02em}.btn:hover{border-color:var(--fg-2);color:var(--fg)}.btn.primary{border-color:var(--accent);background:var(--accent);color:#fff}.btn.primary:hover{border-color:var(--accent-hover);background:var(--accent-hover);box-shadow:none;color:#fff}
+.run-strip{display:none}.stage{display:grid;grid-template-columns:minmax(300px,344px) minmax(0,1fr);gap:0;margin:0;min-height:calc(100dvh - 72px)}.stage>.panel:first-child{grid-column:2;grid-row:1;min-width:0;margin:24px 24px 0;background:transparent;border:0;box-shadow:none}.stage>.panel:nth-child(2){grid-column:1;grid-row:1;margin:0;border:0;border-right:1px solid var(--border);border-radius:0;background:var(--surface);box-shadow:none}.stage>.panel:first-child .panel-head{border:1px solid var(--border);border-bottom:0;border-radius:12px 12px 0 0}.stage>.panel:first-child #viewhost{border:1px solid var(--border);border-top:0;border-radius:0 0 12px 12px}.panel{border:1px solid var(--border);border-radius:0;background:var(--surface);box-shadow:none}.panel-head,.code-head{min-height:55px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface)}.panel-head h2,.ribbon-head h2,.code-head h3{color:var(--fg);font:500 16px/1.2 "Haas Groot Disp",Haas,-apple-system,system-ui,sans-serif;letter-spacing:.01em;text-transform:none}.panel-head h2:after,.code-head h3:after{content:"配置";float:right;margin-left:12px;color:var(--muted);font:500 11px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.08em}
+#viewhost{height:calc(100dvh - 168px);min-height:520px;background:#0d171b}#viewer{background:#0d171b}.drop-veil{background:#0d171b;color:#e8edf0}.drop-veil.drag{background:#0d171b;outline:2px dashed #0089df;outline-offset:-16px}.drop-ring{width:104px;height:104px;border:2px solid #61707b;color:#0089df;box-shadow:0 0 0 10px rgba(123,159,144,.075)}.drop-veil h3{font:600 26px/1.25 "Haas Groot Disp",Haas,-apple-system,system-ui,sans-serif}.drop-veil p{max-width:520px;color:#adb7bd;font-size:15px}.drop-veil .btn{border:0;border-radius:12px;background:#fff;color:#18212a;font-size:17px;font-weight:600}.drop-veil .btn:hover{border:0;background:#edf4f8;color:#18212a}.view-tools{left:14px;bottom:14px}.chip-btn,.hint-pill{border-color:rgba(232,237,240,.22);border-radius:2px;background:rgba(13,23,27,.88);color:#dbe4e9;font-family:inherit}.chip-btn.on{border-color:var(--accent);background:var(--accent);color:#fff}.hint-pill{right:14px}.select-dock{right:14px;bottom:14px;border-color:var(--border);border-radius:2px;background:#fff;box-shadow:0 8px 20px rgba(0,0,0,.16)}.dock-label,.select-status{font-family:inherit;color:var(--muted)}.tool-btn,.copy-btn{min-height:30px;border-color:var(--border);border-radius:2px;background:var(--surface);color:var(--fg);font-family:inherit}.tool-btn:hover,.copy-btn:hover{border-color:var(--fg-2);color:var(--fg)}.tool-btn.on,.tool-btn.on.add{border-color:var(--accent);background:var(--accent);color:#fff}.tool-btn.on.remove{border-color:var(--danger);background:var(--danger);color:#fff}
+.builder{max-height:calc(100dvh - 127px);padding:0 24px 28px;overflow-y:auto;scrollbar-color:var(--border) transparent}.config-intro{padding:20px 0 16px;border-bottom:2px solid var(--fg);margin-bottom:0}.config-intro strong{color:var(--fg);font:500 20px/1.2 "Haas Groot Disp",Haas,-apple-system,system-ui,sans-serif}.config-intro p{color:var(--muted);font-size:14px}.meta-row{padding:14px 0;border-color:var(--border);color:var(--muted);font-family:ui-monospace,"SF Mono",Menlo,monospace}.meta-row b{color:var(--accent)}.mini,.cfg-head span,.cfg-field label,.run-cell .label{font-family:ui-monospace,"SF Mono",Menlo,monospace;color:var(--muted)}.frag{border-color:var(--border);border-radius:0;background:var(--surface)}.frag-head{padding:12px 0}.frag-name{color:var(--fg)}.frag-tag{font-family:inherit;color:var(--muted)}.res{border-color:var(--border);border-radius:2px;background:var(--surface);color:var(--fg);font-family:ui-monospace,"SF Mono",Menlo,monospace}.res.site{border-color:var(--accent);background:color-mix(in oklab,var(--accent),transparent 90%);color:var(--accent);box-shadow:none}.res.lig{border-color:var(--amber);background:color-mix(in oklab,var(--amber),transparent 88%);color:#6b5200}.cfg-group{padding:20px 0 1px;border-color:var(--border)}.cfg-head h3{font:500 16px/1.2 "Haas Groot Disp",Haas,-apple-system,system-ui,sans-serif}.cfg-field input,.cfg-field select,input[type=text],input[type=number]{border-color:var(--border);border-radius:2px;background:var(--surface);color:var(--fg);font-family:inherit}.cfg-field input:focus,.cfg-field select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:var(--focus-ring)}.cfg-checks label,label.opt{color:var(--fg)}.param-alert{border-left:2px solid var(--accent);background:color-mix(in oklab,var(--accent),transparent 94%);color:var(--muted);font-family:ui-monospace,"SF Mono",Menlo,monospace}.param-alert.warn-state{border-color:var(--amber);color:#6b5200}.param-alert.error-state{border-color:var(--danger);color:var(--danger)}
+.ribbon-wrap{margin:0;padding:24px 24px 0;margin-left:344px}.ribbon-head{margin-bottom:10px}.ribbon-legend{font-family:inherit;color:var(--muted)}.ribbon{border-color:var(--border);border-radius:2px;background:var(--surface)}.seg{border-radius:0;font-family:ui-monospace,"SF Mono",Menlo,monospace}.seg.frag{background:var(--accent)!important;color:#fff}.seg.link,.seg.link .seg-len,.seg.link .seg-lab{background:var(--surface)}.seg.link{border-color:var(--amber);color:#6b5200}.seg.brk{border-color:var(--danger);color:var(--danger)}.out-grid{grid-template-columns:1fr 1fr;gap:16px;margin:20px 24px 0 368px}.out-grid .panel{border-radius:12px}.yaml-editor,pre{background:var(--surface);color:var(--fg);font-family:ui-monospace,"SF Mono",Menlo,monospace}.yaml-actions{border-color:var(--border);background:var(--surface)}.yaml-state{font-family:inherit;color:var(--muted)}.yaml-state.ok{color:var(--success)}.yaml-state.err{color:var(--danger)}pre .k,pre .v{color:var(--accent)}pre .c{color:var(--muted)}pre .n{color:#6b5200}.warn{margin:20px 24px 0 368px;border-color:var(--border);border-radius:2px;background:var(--surface);color:var(--fg)}.warn b{color:#6b5200}.warn ul{color:var(--muted)}.foot{margin:24px 24px 0 368px;border-color:var(--border);color:var(--muted);font-family:inherit}
+@media(max-width:1050px){html,body{height:auto;overflow:auto}.wrap{height:auto;overflow:visible}.top{position:relative;grid-template-columns:1fr}.stage{display:grid;grid-template-columns:1fr;min-height:0}.stage>.panel:first-child,.stage>.panel:nth-child(2){grid-column:auto;grid-row:auto;margin:0;border:0}.stage>.panel:first-child{padding:20px;background:oklch(98% .005 250)}.stage>.panel:nth-child(2){border-bottom:1px solid var(--border)}.stage>.panel:first-child .panel-head{border-radius:12px 12px 0 0}.stage>.panel:first-child #viewhost{height:590px}.builder{max-height:none;overflow:visible}.ribbon-wrap{margin-left:0;padding:20px}.out-grid,.warn,.foot{margin-left:20px;margin-right:20px}.out-grid{margin-top:0}}@media(max-width:620px){.top{padding:14px 16px}.brand-title{font-size:25px}.load-cluster{width:100%}.load-cluster .btn{flex:1;justify-content:center}.stage>.panel:first-child{padding:12px}.stage>.panel:first-child #viewhost{height:500px;min-height:500px}.ribbon-wrap{padding:16px}.out-grid{grid-template-columns:1fr;margin-left:16px;margin-right:16px}.warn,.foot{margin-left:16px;margin-right:16px}.select-dock{width:calc(100% - 28px)}.view-tools{max-width:calc(100% - 28px)}}
+
+
+/* Remove the redundant workbench header; keep navigation inside the RFD3 tool header. */
+.main-header{display:none}.main-body{height:100%;overflow:hidden}.wrap{height:100dvh}.rfd3-back-link{display:inline-flex;align-items:center;min-height:32px;margin:0 0 12px;padding:0 8px;border-bottom:1px solid var(--fg);color:var(--fg-2);font-size:14px;font-weight:500;letter-spacing:.02em;text-decoration:none}.rfd3-back-link:before{content:"←";margin-right:8px}.rfd3-back-link:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:1050px){.main-body{height:auto;overflow:visible}.wrap{height:auto}.rfd3-back-link{margin-bottom:10px}}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">跳至主要内容</a><div class="app" id="app-shell"><aside class="sidebar" id="workflow-sidebar" aria-label="蛋白设计工作流导航"><div class="sidebar-brand">蛋白设计工作台<small>Protein Design Workbench</small></div><nav class="sidebar-nav"><div class="nav-section"><div class="nav-section-title">概览</div><a href="index.html" class="nav-item"><span class="nav-mark">总</span>工作流总览</a></div><div class="nav-section"><div class="nav-section-title">设计流程</div><a href="step-target.html" class="nav-item"><span class="step-num">1</span>靶点分析<span class="status status-todo"></span></a><a href="step-scaffold.html" class="nav-item active" aria-current="page"><span class="step-num">2</span>骨架设计<span class="status status-progress"></span></a><a href="step-sequence.html" class="nav-item"><span class="step-num">3</span>序列优化<span class="status status-todo"></span></a><a href="step-structure.html" class="nav-item"><span class="step-num">4</span>结构预测<span class="status status-todo"></span></a><a href="step-molecular.html" class="nav-item"><span class="step-num">5</span>分子动力学<span class="status status-todo"></span></a><a href="step-binding.html" class="nav-item"><span class="step-num">6</span>结合分析<span class="status status-todo"></span></a><a href="step-alignment.html" class="nav-item"><span class="step-num">7</span>序列比对<span class="status status-progress"></span></a></div><div class="nav-section"><div class="nav-section-title">工具</div><a href="chain_alignment_workbench.html" class="nav-item"><span class="nav-mark">工</span>链比对工作台</a></div></nav></aside><button class="nav-backdrop" id="nav-backdrop" type="button" aria-label="关闭工作流导航"></button><main class="main" id="main-content" tabindex="-1"><div class="main-body"><div class="wrap">
+  <header class="top">
+    <div>
+      <a class="rfd3-back-link" href="step-scaffold.html">返回骨架设计</a>
+      <div class="brand-eyebrow">RFdiffusion3 · 骨架设计 · 本地输入构建</div>
+      <h1 class="brand-title">RFdiffusion3 骨架输入<span class="glow">构建器</span></h1>
+      <p class="brand-sub">载入去重后的 PDB/CIF 结构，在三维视图中点选要固定的位点残基，实时生成 RFdiffusion3 的 contig 与 select_fixed_atoms 输入。</p>
+    </div>
+    <div class="load-cluster">
+      <input id="file" type="file" accept=".pdb,.cif,.ent,.mmcif,.txt" hidden>
+      <button class="btn primary" id="loadBtn">◇ 载入结构文件</button>
+      <button class="btn" id="sampleBtn">试用示例</button>
+    </div>
+  </header>
+
+  <section class="run-strip" aria-label="设计运行摘要">
+    <div class="run-cell"><div class="run-identity"><div class="run-orb">U</div><div><div class="label">RFdiffusion3 · Foundry 0.1.7</div><strong>Scaffold configuration cockpit</strong><small>把结构约束、扩散行为和执行参数放在同一条可审阅的设计路径中。</small></div></div></div>
+    <div class="run-cell"><span class="label">计划样本</span><strong id="sampleCount">—</strong><small>n_batches × batch size</small></div>
+    <div class="run-cell"><span class="label">扩散轨迹</span><strong id="stepCount">200</strong><small>反向去噪步</small></div>
+    <div class="run-cell"><span class="label">预检状态</span><span class="status" id="validationStatus">等待结构输入</span><small id="validationSub">配置将在载入后检查</small></div>
+  </section>
+
+  <div class="stage">
+    <!-- viewer -->
+    <section class="panel">
+      <div class="panel-head"><h2>三维结构</h2><span id="viewMeta" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--bone-dim)"></span></div>
+      <div id="viewhost">
+        <div id="viewer"></div>
+        <div class="drop-veil" id="veil">
+          <div class="drop-ring">◇</div>
+          <h3>拖入 PDB 或 CIF 文件</h3>
+          <p>支持多 MODEL、全链 A 的交付结构。每个 MODEL 或每条链会识别为一个可连接片段。</p>
+          <button class="btn" id="veilBtn">选择文件</button>
+        </div>
+        <div class="hint-pill" id="hintPill" style="display:none">选择模式：添加 · 原子</div>
+        <div class="select-dock" id="selectDock" hidden>
+          <div class="dock-label">固定原子选择器 · 点击三维结构</div>
+          <div class="tool-row" id="scopeTools">
+            <button class="tool-btn on add" data-scope="atom">原子</button>
+            <button class="tool-btn" data-scope="residue">残基 / 分子</button>
+            <button class="tool-btn" data-scope="backbone">骨架</button>
+            <button class="tool-btn" data-scope="chain">整条链</button>
+          </div>
+          <div class="tool-row" style="margin-top:5px" id="actionTools">
+            <button class="tool-btn on add" data-action="add">＋ 添加固定</button>
+            <button class="tool-btn remove" data-action="remove">－ 取消固定</button>
+            <button class="tool-btn" id="clearFixed">清除全部</button>
+          </div>
+          <div class="select-status" id="selectStatus">选择一个原子以添加固定约束。</div>
+        </div>
+        <div class="view-tools" id="viewTools" style="display:none">
+          <button class="chip-btn on" data-style="cartoon">飘带</button>
+          <button class="chip-btn" data-style="stick">棒状</button>
+          <button class="chip-btn" data-style="sphere">球棍</button>
+          <button class="chip-btn" id="spinBtn">自旋</button>
+          <button class="chip-btn" id="resetBtn">复位视角</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- builder -->
+    <section class="panel">
+      <div class="panel-head"><h2>设计 specification</h2><span id="configMode" style="font:11px IBM Plex Mono,monospace;color:var(--bone-dim)">Dialect 2</span></div>
+      <div class="builder">
+        <div class="config-intro"><strong>设计对象与结构约束</strong><p>载入结构后，在三维视图建立可固定的 motif。下面的字段分别进入 YAML specification 或 <code>rfd3 design</code> 命令。</p></div>
+        <div class="meta-row" id="metaRow"><span>尚未载入结构。</span></div>
+        <div id="fragList"><div class="empty-note">载入结构后，此处按片段列出残基。点击三维视图中的残基，按当前粒度建立 <code>select_fixed_atoms</code>。</div></div>
+
+        <div class="mini">连接模式</div>
+        <div class="field-row">
+          <label class="opt"><input type="radio" name="mode" value="single" checked> 单链（无 /0，生成 linker）</label>
+        </div>
+        <div class="field-row">
+          <label class="opt"><input type="radio" name="mode" value="break"> 保留链断裂（片段间插入 /0）</label>
+        </div>
+
+        <div class="mini">Linker 长度（残基范围）</div>
+        <div class="field-row">
+          <label class="opt">最短 <input type="number" id="linkMin" value="8" min="1" max="80"></label>
+          <label class="opt">最长 <input type="number" id="linkMax" value="20" min="1" max="120"></label>
+          <label class="opt" style="margin-left:auto"><input type="checkbox" id="ligLock" checked> 固定 IUM 全原子</label>
+        </div>
+
+        <div class="mini">固定原子级别（骨架片段）</div>
+        <div class="field-row">
+          <label class="opt"><input type="radio" name="bb" value="BKBN" checked> BKBN 骨架</label>
+          <label class="opt"><input type="radio" name="bb" value="ALL"> ALL 全原子</label>
+        </div>
+
+        <div class="mini">设计名称</div>
+        <div class="field-row">
+          <input type="text" class="wide" id="designName" value="uranyl_multifrag_linker">
+        </div>
+
+        <div class="cfg-group">
+          <div class="cfg-head"><h3>结构语义</h3><span>InputSpecification</span></div>
+          <div class="cfg-grid">
+            <div class="cfg-field"><label for="dialect">解析 dialect</label><select id="dialect"><option value="2" selected>2 · 推荐格式</option><option value="1">1 · 兼容旧格式</option></select></div>
+            <div class="cfg-field"><label for="originStrategy">原点推断</label><select id="originStrategy"><option value="">自动（不写入）</option><option value="com">com · 质心</option><option value="hotspots">hotspots · 热点</option></select></div>
+            <div class="cfg-field"><label for="hotspots">热点选择</label><input id="hotspots" placeholder="例如 A12,A18" spellcheck="false"></div>
+            <div class="cfg-field"><label for="unfixedSeq">可变序列</label><input id="unfixedSeq" placeholder="例如 A20-35" spellcheck="false"></div>
+          </div>
+          <div class="cfg-checks"><label class="opt"><input type="checkbox" id="plddt" checked> pLDDT enhancement</label><label class="opt"><input type="checkbox" id="nonLoopy"> 偏向少 loop / 多 helix</label><label class="opt"><input type="checkbox" id="redesignSidechains"> 重设计 motif 侧链</label></div>
+          <p class="cfg-note">热点与可变序列使用统一 <b>InputSelection</b> 语法；请只填写能匹配输入结构的真实残基。</p>
+        </div>
+        <div class="cfg-group">
+          <div class="cfg-head"><h3>部分扩散与采样</h3><span>inference_sampler</span></div>
+          <div class="cfg-grid three">
+            <div class="cfg-field"><label for="partialT">partial_t (Å)</label><input type="number" id="partialT" value="0" min="0" max="50" step="0.5"></div>
+            <div class="cfg-field"><label for="timesteps">num_timesteps</label><input type="number" id="timesteps" value="200" min="20" max="500" step="10"></div>
+            <div class="cfg-field"><label for="recycle">n_recycle</label><input type="number" id="recycle" placeholder="checkpoint" min="0" max="8"></div>
+            <div class="cfg-field"><label for="stepScale">step_scale</label><input type="number" id="stepScale" value="1.5" min="0.1" max="3" step="0.1"></div>
+            <div class="cfg-field"><label for="noiseScale">noise_scale</label><input type="number" id="noiseScale" value="1.003" min="0.8" max="1.2" step="0.001"></div>
+            <div class="cfg-field"><label for="gamma0">gamma_0</label><input type="number" id="gamma0" value="0.6" min="0" max="1" step="0.05"></div>
+          </div>
+          <div class="cfg-checks"><label class="opt"><input type="checkbox" id="cfgEnabled"> classifier-free guidance</label><label class="opt"><input type="checkbox" id="realign"> 允许 motif realignment</label></div>
+          <div class="cfg-grid" style="margin-top:8px"><div class="cfg-field"><label for="cfgFeatures">CFG features</label><input id="cfgFeatures" placeholder="active_donor,active_acceptor"></div><div class="cfg-field"><label for="cfgScale">cfg_scale</label><input type="number" id="cfgScale" value="1.5" min="0" max="5" step="0.1"></div></div>
+        </div>
+        <div class="cfg-group">
+          <div class="cfg-head"><h3>执行与输出</h3><span>rfd3 design</span></div>
+          <div class="cfg-grid three">
+            <div class="cfg-field"><label for="batches">n_batches</label><input type="number" id="batches" value="4" min="1" max="1000"></div>
+            <div class="cfg-field"><label for="batchSize">diffusion_batch_size</label><input type="number" id="batchSize" value="8" min="1" max="128"></div>
+            <div class="cfg-field"><label for="checkpoint">checkpoint</label><input id="checkpoint" value="rfd3" spellcheck="false"></div>
+            <div class="cfg-field"><label for="outDir">out_dir</label><input id="outDir" value="rfd3_out" spellcheck="false"></div>
+            <div class="cfg-field"><label for="prefix">global_prefix</label><input id="prefix" placeholder="可选" spellcheck="false"></div>
+            <div class="cfg-field"><label for="centerOption">center_option</label><select id="centerOption"><option value="all">all</option><option value="motif">motif</option><option value="diffuse">diffuse</option></select></div>
+          </div>
+          <div class="cfg-checks"><label class="opt"><input type="checkbox" id="prevalidate" checked> 预验证输入</label><label class="opt"><input type="checkbox" id="skipExisting" checked> 跳过已有输出</label><label class="opt"><input type="checkbox" id="dumpTraj"> 保存扩散轨迹</label><label class="opt"><input type="checkbox" id="lowMemory"> 低显存模式</label></div>
+          <div class="param-alert" id="paramAlert">未载入结构：可以先设置运行参数；载入后将检查 contig、原子选择和批量数量。</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- contig ribbon -->
+  <div class="ribbon-wrap">
+    <div class="ribbon-head">
+      <h2>Contig 装配带</h2>
+      <div class="ribbon-legend">
+        <span><i class="lg-dot" style="background:var(--phosphor)"></i>固定片段</span>
+        <span><i class="lg-dot" style="background:repeating-linear-gradient(90deg,var(--amber) 0 4px,transparent 4px 8px)"></i>生成 linker</span>
+        <span><i class="lg-dot" style="background:var(--danger)"></i>链断裂 /0</span>
+      </div>
+    </div>
+    <div class="ribbon" id="ribbon"><div class="empty-note" style="margin:auto">装配带会随片段与 linker 设置实时更新。</div></div>
+  </div>
+
+  <!-- output -->
+  <div class="out-grid">
+    <section class="panel">
+      <div class="code-head"><h3>RFD3 输入 · YAML</h3>
+        <div style="display:flex;gap:8px">
+          <button class="copy-btn" id="resetYaml">从选择重建</button>
+          <button class="copy-btn" id="copyYaml">复制</button>
+          <button class="copy-btn" id="dlYaml">下载 .yaml</button>
+        </div>
+      </div>
+      <textarea id="yamlOut" class="yaml-editor" spellcheck="false" aria-label="可编辑的 RFdiffusion3 YAML"># 载入结构后自动生成</textarea>
+      <div class="yaml-actions">
+        <button class="copy-btn" id="applyYaml">应用 YAML → 3D</button>
+        <span class="yaml-state" id="yamlState">编辑后点击“应用 YAML → 3D”同步固定原子。</span>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="code-head"><h3>运行命令 + 归一化 PDB</h3>
+        <div style="display:flex;gap:8px">
+          <button class="copy-btn" id="copyCmd">复制命令</button>
+          <button class="copy-btn" id="dlPdb">下载输入 PDB</button>
+        </div>
+      </div>
+      <pre id="cmdOut"><span class="c"># 载入结构后自动生成</span></pre>
+    </section>
+  </div>
+
+  <div class="warn">
+    <b>运行前须知</b>
+    <ul>
+      <li>contig 中带链号（A1-30）表示保留输入残基，纯数字表示新生成残基，<b>/0</b> 表示链断裂。单链模式不含 /0。</li>
+      <li>下载的“输入 PDB”已按片段设为独立链 A/B/C…，并将每段蛋白残基重编号为 1..N，与 contig 索引一致——请把它作为 <b>input</b> 传给 RFD3。</li>
+      <li>先用 <b>prevalidate_inputs=True</b> 验证；确认安装的化学组分库能识别 <b>IUM</b>，否则改用仅蛋白条件设计再回填铀酰坐标。</li>
+      <li>RFD3 只负责骨架/linker 生成，不校验铀配位化学；输出需按 U–O 距离/角度、位点供体、片段连续性筛选后再做 MD 最小化。</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    <span>Protein Design Workbench · RFdiffusion3 configuration cockpit · 3Dmol.js</span>
+    <span>Inputs: structure constraints · Command: sampling &amp; runtime · Foundry 0.1.7</span>
+  </div>
+</div></div></main></div><script>
+"use strict";
+/* ============ state ============ */
+const AA3=new Set(["ALA","ARG","ASN","ASP","CYS","GLN","GLU","GLY","HIS","ILE","LEU","LYS","MET","PHE","PRO","SER","THR","TRP","TYR","VAL","MSE","SEC","PYL"]);
+const DISPLAY_CHAINS="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const PALETTE=["#8fd66f","#5ab0e6","#e6a94c","#d17ae0","#4fd0c0","#e8734a","#c9d24f","#7f8ce0"];
+let viewer=null, model=null;
+let FRAG=[];        // {name, dispChain, srcChain, srcModel, color, residues:[{srcNum,newNum,resn,site}], ligand:[{atoms}], ligStartNum}
+let normalizedPDB="";
+let spinning=false, curStyle="cartoon";
+// Each rule is {target: "A12" | "IUM", mode: "ALL" | "BKBN" | "TIP" | atom name array}.
+// Rules are ordered; later/manual rules override earlier rules when resolving an atom.
+let fixedRules=[];
+let selectScope="atom", selectAction="add";
+let yamlDirty=false;
+
+/* ============ parsing ============ */
+// Returns list of atom records with grouping by (model,chain).
+function parsePDB(text){
+  const atoms=[]; let modelIdx=0; let sawModel=false;
+  for(const line of text.split(/\r?\n/)){
+    const rec=line.slice(0,6).trim();
+    if(rec==="MODEL"){sawModel=true; modelIdx=parseInt(line.slice(10).trim())||modelIdx+1; continue;}
+    if(rec==="ENDMDL"){continue;}
+    if(rec!=="ATOM"&&rec!=="HETATM")continue;
+    const alt=line[16];
+    if(alt!==" "&&alt!=="A")continue;
+    atoms.push({
+      het:rec==="HETATM",
+      serial:parseInt(line.slice(6,11))||0,
+      name:line.slice(12,16).trim(),
+      resn:line.slice(17,20).trim(),
+      chain:line[21]===" "?"_":line[21],
+      resi:parseInt(line.slice(22,26)),
+      icode:line[26].trim(),
+      x:parseFloat(line.slice(30,38)),y:parseFloat(line.slice(38,46)),z:parseFloat(line.slice(46,54)),
+      occ:line.slice(54,60).trim()||"1.00",
+      b:line.slice(60,66).trim()||"0.00",
+      elem:(line.slice(76,78).trim()||line.slice(12,16).trim()[0]||"C"),
+      charge:line.slice(78,80).trim(),
+      model:sawModel?modelIdx:1
+    });
+  }
+  return atoms;
+}
+// Minimal CIF atom_site parser.
+function parseCIF(text){
+  const lines=text.split(/\r?\n/); const atoms=[]; let i=0;
+  while(i<lines.length){
+    if(lines[i].trim()==="loop_"){
+      const cols=[]; let j=i+1;
+      while(j<lines.length && lines[j].trim().startsWith("_atom_site.")){cols.push(lines[j].trim());j++;}
+      if(cols.length){
+        const idx=n=>cols.indexOf("_atom_site."+n);
+        const cGroup=idx("group_PDB"),cName=idx("label_atom_id"),cAlt=idx("label_alt_id"),
+          cResn=idx("label_comp_id"),cAuthAsym=idx("auth_asym_id"),cLabAsym=idx("label_asym_id"),
+          cAuthSeq=idx("auth_seq_id"),cLabSeq=idx("label_seq_id"),
+          cx=idx("Cartn_x"),cy=idx("Cartn_y"),cz=idx("Cartn_z"),
+          cElem=idx("type_symbol"),cModel=idx("pdbx_PDB_model_num"),cIns=idx("pdbx_PDB_ins_code");
+        if(cx<0){i=j;continue;}
+        for(;j<lines.length;j++){
+          const t=lines[j].trim();
+          if(t===""||t==="#"||t==="loop_"||t.startsWith("_")||t.startsWith("data_"))break;
+          const p=t.match(/'[^']*'|"[^"]*"|\S+/g); if(!p)continue;
+          const g=v=>v>=0&&v<p.length?p[v].replace(/^['"]|['"]$/g,""):"";
+          const alt=g(cAlt); if(alt!=="."&&alt!==""&&alt!=="A")continue;
+          const chain=(cAuthAsym>=0?g(cAuthAsym):g(cLabAsym))||"_";
+          const seq=cAuthSeq>=0?g(cAuthSeq):g(cLabSeq);
+          atoms.push({
+            het:g(cGroup)==="HETATM",name:g(cName),resn:g(cResn),chain,
+            resi:parseInt(seq),icode:(g(cIns)==="?"||g(cIns)===".")?"":g(cIns),
+            x:parseFloat(g(cx)),y:parseFloat(g(cy)),z:parseFloat(g(cz)),
+            occ:"1.00",b:"0.00",elem:g(cElem)||"C",charge:"",
+            model:cModel>=0?(parseInt(g(cModel))||1):1
+          });
+        }
+      }
+      i=j; continue;
+    }
+    i++;
+  }
+  return atoms;
+}
+/* ============ build fragment model ============ */
+// Group atoms by (model,chain); protein groups become fragments, IUM/HET attach to nearest fragment.
+function buildFragments(atoms){
+  const groups=new Map();
+  for(const a of atoms){
+    const key=a.model+"|"+a.chain;
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(a);
+  }
+  const frags=[]; const ligandGroups=[];
+  for(const [key,ga] of groups){
+    const isProt=ga.some(a=>!a.het&&AA3.has(a.resn));
+    if(isProt){
+      // residue order preserving appearance
+      const seen=new Map(); const order=[];
+      for(const a of ga){ if(a.het&&!AA3.has(a.resn))continue;
+        const rk=a.resi+"|"+a.icode; if(!seen.has(rk)){seen.set(rk,{srcNum:a.resi,icode:a.icode,resn:a.resn,atoms:[]});order.push(rk);}
+        seen.get(rk).atoms.push(a);
+      }
+      const residues=order.map((rk,i)=>{const r=seen.get(rk);return{srcNum:r.srcNum,icode:r.icode,newNum:i+1,resn:r.resn,atoms:r.atoms,site:false};});
+      const ligs=ga.filter(a=>a.het&&!AA3.has(a.resn));
+      frags.push({srcChain:ga[0].chain,srcModel:ga[0].model,residues,ligAtoms:ligs});
+    }else{
+      ligandGroups.push(ga);
+    }
+  }
+  // sort by model then chain for stable fragment order
+  frags.sort((p,q)=>p.srcModel-q.srcModel||(p.srcChain<q.srcChain?-1:1));
+  // attach loose ligand groups to nearest fragment centroid
+  for(const lg of ligandGroups){
+    const c=centroid(lg); let best=0,bd=1e9;
+    frags.forEach((f,i)=>{const fc=centroid(f.residues.flatMap(r=>r.atoms));const d=dist2(c,fc);if(d<bd){bd=d;best=i;}});
+    if(frags[best])frags[best].ligAtoms=frags[best].ligAtoms.concat(lg);
+  }
+  // finalize labels, numbering, colors
+  frags.forEach((f,i)=>{
+    f.name="片段 "+(i+1);
+    f.dispChain=DISPLAY_CHAINS[i]||("z"+i);
+    f.color=PALETTE[i%PALETTE.length];
+    f.ligStartNum=f.residues.length+1;
+  });
+  return frags;
+}
+function centroid(atoms){const n=atoms.length||1;let x=0,y=0,z=0;for(const a of atoms){x+=a.x;y+=a.y;z+=a.z;}return[x/n,y/n,z/n];}
+function dist2(a,b){return (a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;}
+
+// Emit a single-model PDB: each fragment -> its display chain, residues renumbered 1..N, ligand after.
+function emitNormalizedPDB(frags){
+  const L=[]; let serial=1;
+  const fmt=(a,chain,resi)=>{
+    const name=a.name.length>=4?a.name:(" "+a.name).padEnd(4);
+    return (a.het?"HETATM":"ATOM  ")+String(serial++).padStart(5)+" "+name.slice(0,4).padEnd(4)+" "+
+      a.resn.padStart(3)+" "+chain+String(resi).padStart(4)+" "+"   "+
+      a.x.toFixed(3).padStart(8)+a.y.toFixed(3).padStart(8)+a.z.toFixed(3).padStart(8)+
+      (a.occ+"").padStart(6)+(a.b+"").padStart(6)+"          "+a.elem.padStart(2)+(a.charge||"").padStart(2);
+  };
+  L.push("REMARK   1 Uranyl Scaffold Studio normalized RFD3 input");
+  L.push("REMARK   1 Fragments assigned distinct chains; protein residues renumbered from 1.");
+  for(const f of frags){
+    for(const r of f.residues){for(const a of r.atoms)L.push(fmt(a,f.dispChain,r.newNum));}
+    let ln=f.ligStartNum;
+    // group ligand atoms by (resn,resi) to keep separate uranyl ions numbered sequentially
+    const byRes=new Map();
+    for(const a of f.ligAtoms){const k=a.resn+"|"+a.resi;if(!byRes.has(k))byRes.set(k,[]);byRes.get(k).push(a);}
+    for(const [,la] of byRes){for(const a of la)L.push(fmt(a,f.dispChain,ln));ln++;}
+    L.push("TER");
+  }
+  L.push("END");
+  return L.join("\n")+"\n";
+}
+/* ============ fixed-atom rules ============ */
+const BB=new Set(["N","CA","C","O"]);
+function targetForAtom(a){return a.resn==="IUM"?"IUM":a.chain+String(a.resi);}
+function fixedToken(mode){return Array.isArray(mode)?mode.join(","):mode;}
+function atomsInTarget(target){
+  const atoms=[];
+  for(const f of FRAG){
+    for(const r of f.residues){if(target===f.dispChain+r.newNum)atoms.push(...r.atoms.map(a=>({...a,chain:f.dispChain,resi:r.newNum})));}
+    if(target==="IUM")atoms.push(...f.ligAtoms.map(a=>({...a,chain:f.dispChain,resi:a.resi})));
+  }
+  return atoms;
+}
+function matchingTargetsForAtom(atom,scope){
+  const target=targetForAtom(atom);
+  if(scope==="atom")return [{target,mode:[atom.atom||atom.name]}];
+  if(scope==="residue")return [{target,mode:"ALL"}];
+  if(scope==="backbone")return [{target,mode:"BKBN"}];
+  if(scope==="chain"){
+    const f=FRAG.find(x=>x.dispChain===atom.chain);if(!f)return[];
+    return f.residues.map(r=>({target:f.dispChain+r.newNum,mode:"ALL"}));
+  }
+  return [];
+}
+function isAtomFixed(atom){
+  const target=targetForAtom(atom),name=atom.atom||atom.name;
+  let val=false;
+  for(const rule of fixedRules){
+    if(rule.target!==target)continue;
+    if(rule.mode==="ALL")val=true;
+    else if(rule.mode==="BKBN")val=BB.has(name);
+    else if(rule.mode==="TIP")val=name==="CA";
+    else if(Array.isArray(rule.mode))val=rule.mode.includes(name);
+  }
+  return val;
+}
+function mergeRule(rule){
+  // Consolidate same target+mode entries. Atom selections coalesce into one atom list.
+  if(Array.isArray(rule.mode)){
+    const old=fixedRules.find(x=>x.target===rule.target&&Array.isArray(x.mode));
+    if(old){old.mode=[...new Set([...old.mode,...rule.mode])];return;}
+  }
+  if(!fixedRules.some(x=>x.target===rule.target&&fixedToken(x.mode)===fixedToken(rule.mode)))fixedRules.push(rule);
+}
+function removeAtoms(target,names){
+  // Removes requested atoms from all selection classes; replaces broad entries with remaining explicit atoms.
+  const all=atomsInTarget(target).map(a=>a.name); const gone=new Set(names);
+  const next=[];
+  for(const rule of fixedRules){
+    if(rule.target!==target){next.push(rule);continue;}
+    let selected=[];
+    if(rule.mode==="ALL")selected=all;
+    else if(rule.mode==="BKBN")selected=all.filter(n=>BB.has(n));
+    else if(rule.mode==="TIP")selected=all.filter(n=>n==="CA");
+    else selected=rule.mode;
+    const remain=selected.filter(n=>!gone.has(n));
+    if(remain.length)next.push({target,mode:remain});
+  }
+  fixedRules=next;
+}
+function applySelection(atom){
+  const choices=matchingTargetsForAtom(atom,selectScope);
+  if(!choices.length)return;
+  if(selectAction==="add")choices.forEach(mergeRule);
+  else choices.forEach(c=>{
+    let names=[];
+    if(c.mode==="ALL")names=atomsInTarget(c.target).map(a=>a.name);
+    else if(c.mode==="BKBN")names=atomsInTarget(c.target).map(a=>a.name).filter(n=>BB.has(n));
+    else names=c.mode;
+    removeAtoms(c.target,names);
+  });
+  writeYAMLFromRules(); refreshAll(false);
+}
+function rulesToYAML(){
+  // YAML cannot safely contain repeated keys. Canonicalize each target from its resolved fixed atoms.
+  const targets=[...new Set(fixedRules.map(r=>r.target))]; const grouped=[];
+  for(const target of targets){
+    const atoms=atomsInTarget(target); if(!atoms.length)continue;
+    const all=[...new Set(atoms.map(a=>a.name))];
+    const selected=all.filter(name=>isAtomFixed({...atoms.find(a=>a.name===name),name}));
+    if(!selected.length)continue;
+    const bb=all.filter(name=>BB.has(name));
+    let token;
+    if(selected.length===all.length)token="ALL";
+    else if(bb.length&&selected.length===bb.length&&bb.every(n=>selected.includes(n)))token="BKBN";
+    else if(selected.length===1&&selected[0]==="CA")token="TIP";
+    else token=selected;
+    grouped.push({target,token:fixedToken(token)});
+  }
+  return grouped;
+}
+function parseFixedRules(yaml){
+  const lines=yaml.split(/\r?\n/); const out=[]; let inFixed=false; let saw=false;
+  for(const raw of lines){
+    const plain=raw.replace(/\s+#.*$/,"");
+    if(/^\s*select_fixed_atoms\s*:\s*$/.test(plain)){inFixed=true;saw=true;continue;}
+    if(!inFixed)continue;
+    if(/^\S/.test(plain)&&plain.trim()!==""){inFixed=false;continue;}
+    const m=plain.match(/^\s{2,}([A-Za-z0-9_\-]+)\s*:\s*(?:["']?)([^"'#\s][^"']*?)(?:["']?)\s*$/);
+    if(!m)continue;
+    const target=m[1], value=m[2].trim();
+    const mode=["ALL","BKBN","TIP"].includes(value.toUpperCase())?value.toUpperCase():value.split(/[\s,]+/).filter(Boolean);
+    if(target!=="IUM"&&!/^[A-Za-z]\d+(?:-\d+)?$/.test(target))throw new Error("无法识别的固定选择："+target);
+    // Range expands into residue-level rules so the 3D overlay is exact.
+    const rm=target.match(/^([A-Za-z])(\d+)-(\d+)$/);
+    if(rm){for(let n=+rm[2];n<=+rm[3];n++)out.push({target:rm[1]+n,mode:Array.isArray(mode)?[...mode]:mode});}
+    else out.push({target,mode});
+  }
+  if(!saw)throw new Error("YAML 中未找到 select_fixed_atoms: 区块。");
+  return out;
+}
+function setYamlState(text,kind=""){
+  const el=document.getElementById("yamlState");el.textContent=text;el.className="yaml-state "+kind;
+}
+function writeYAMLFromRules(){
+  if(!FRAG.length)return;
+  document.getElementById("yamlOut").value=buildYAML();yamlDirty=false;
+  setYamlState("已从当前固定选择同步 YAML。","ok");
+}
+function applyYAMLToRules(){
+  try{fixedRules=parseFixedRules(document.getElementById("yamlOut").value);yamlDirty=false;setYamlState("YAML 已应用，固定原子高亮已更新。","ok");refreshAll(false);}
+  catch(e){setYamlState(e.message,"err");}
+}
+function fixedAtomCount(){
+  let n=0;
+  for(const f of FRAG){for(const r of f.residues){for(const a of r.atoms){if(isAtomFixed({...a,chain:f.dispChain,resi:r.newNum}))n++;}}}
+  for(const f of FRAG){for(const a of f.ligAtoms){if(isAtomFixed({...a,chain:f.dispChain,resi:a.resi}))n++;}}
+  return n;
+}
+
+function renderViewer(){
+  if(!viewer){viewer=$3Dmol.createViewer(document.getElementById("viewer"),{backgroundColor:"#0d110c"});}
+  viewer.clear();
+  model=viewer.addModel(normalizedPDB,"pdb");
+  // Click callbacks receive the actual atom so atom/residue/backbone/chain modes remain distinct.
+  viewer.setClickable({},true,(atom)=>{applySelection(atom);});
+  applyStyle();
+  viewer.zoomTo(); viewer.render();
+}
+function applyStyle(){
+  if(!model)return;
+  model.setStyle({},{});
+  if(curStyle==="cartoon"){
+    FRAG.forEach(f=>viewer.setStyle({chain:f.dispChain},{cartoon:{color:f.color},stick:{radius:.08,color:f.color}}));
+  }else if(curStyle==="stick"){
+    FRAG.forEach(f=>viewer.setStyle({chain:f.dispChain},{stick:{radius:.16,color:f.color}}));
+  }else{
+    FRAG.forEach(f=>viewer.setStyle({chain:f.dispChain},{stick:{radius:.15,color:f.color},sphere:{scale:.28,color:f.color}}));
+  }
+  viewer.setStyle({resn:"IUM"},{sphere:{scale:.42,colorscheme:"default"}});
+  // Highlight every atom which is resolved as fixed by the current YAML/rules.
+  for(const f of FRAG){
+    for(const r of f.residues){for(const a of r.atoms){
+      const aa={...a,chain:f.dispChain,resi:r.newNum};
+      if(isAtomFixed(aa))viewer.addStyle({chain:f.dispChain,resi:r.newNum,atom:a.name},{stick:{radius:.30,color:"#e6ff5a"},sphere:{scale:.34,color:"#e6ff5a"}});
+    }}
+    for(const a of f.ligAtoms){
+      const aa={...a,chain:f.dispChain,resi:a.resi};
+      if(isAtomFixed(aa))viewer.addStyle({chain:f.dispChain,resi:a.resi,atom:a.name},{sphere:{scale:.58,color:"#e6ff5a"}});
+    }
+  }
+  viewer.render();
+}
+
+/* ============ contig / yaml ============ */
+function linkerToken(){const a=+document.getElementById("linkMin").value,b=+document.getElementById("linkMax").value;
+  return (a===b)?(""+a):(a+"-"+b);}
+function buildContig(){
+  const mode=document.querySelector('input[name=mode]:checked').value;
+  const parts=[];
+  FRAG.forEach((f,i)=>{
+    if(i>0){ parts.push(mode==="break"?"/0":linkerToken()); }
+    parts.push(f.dispChain+"1-"+f.residues.length);
+  });
+  return parts.join(mode==="break"?" ":",");
+}
+function siteResidues(f){return f.residues.filter(r=>r.site);}
+function val(id){return document.getElementById(id).value.trim();}
+function bool(id){return document.getElementById(id).checked;}
+function yamlQuote(v){return /[\s,:#{}\[\]]/.test(v)?JSON.stringify(v):v;}
+function buildYAML(){
+  const name=(document.getElementById("designName").value.trim()||"design").replace(/[^\w\-]/g,"_");
+  const hasLig=FRAG.some(f=>f.ligAtoms.length), L=[];
+  L.push("# RFdiffusion3 input specification · dialect "+val("dialect"));
+  L.push("# Structure constraints are written here; sampler settings are in the command.");
+  L.push(name+":"); L.push("  input: "+name+"_input.pdb"); L.push("  dialect: "+val("dialect"));
+  if(hasLig)L.push("  ligand: IUM"); L.push('  contig: "'+buildContig()+'"');
+  const hotspots=val("hotspots"),unfixed=val("unfixedSeq"),origin=val("originStrategy"),partial=+val("partialT");
+  if(hotspots)L.push("  select_hotspots: "+yamlQuote(hotspots)); if(unfixed)L.push("  select_unfixed_sequence: "+yamlQuote(unfixed));
+  L.push("  plddt_enhanced: "+bool("plddt")); if(bool("nonLoopy"))L.push("  is_non_loopy: true"); if(bool("redesignSidechains"))L.push("  redesign_motif_sidechains: true"); if(origin)L.push("  infer_ori_strategy: "+origin); if(partial>0)L.push("  partial_t: "+partial);
+  L.push("  select_fixed_atoms:"); const rules=rulesToYAML(); if(!rules.length)L.push("    # Click the 3D motif to add fixed atoms"); rules.forEach(r=>L.push("    "+r.target+": "+r.token)); return L.join("\n")+"\n";
+}
+function buildCmd(){
+  const name=(val("designName")||"design").replace(/[^\w\-]/g,"_"); const lines=["rfd3 design","  out_dir="+val("outDir")+"/"+name,"  inputs="+name+".yaml","  ckpt_path="+val("checkpoint"),"  n_batches="+val("batches"),"  diffusion_batch_size="+val("batchSize"),"  skip_existing="+bool("skipExisting"),"  prevalidate_inputs="+bool("prevalidate"),"  inference_sampler.num_timesteps="+val("timesteps"),"  inference_sampler.step_scale="+val("stepScale"),"  inference_sampler.noise_scale="+val("noiseScale"),"  inference_sampler.gamma_0="+val("gamma0"),"  inference_sampler.center_option="+val("centerOption")];
+  if(val("recycle"))lines.push("  inference_sampler.n_recycle="+val("recycle"));if(val("prefix"))lines.push("  global_prefix="+val("prefix"));if(bool("dumpTraj"))lines.push("  dump_trajectories=True");if(bool("lowMemory"))lines.push("  low_memory_mode=True");if(bool("realign"))lines.push("  inference_sampler.allow_realignment=True");if(bool("cfgEnabled")){lines.push("  inference_sampler.use_classifier_free_guidance=True");if(val("cfgFeatures"))lines.push("  inference_sampler.cfg_features="+val("cfgFeatures"));lines.push("  inference_sampler.cfg_scale="+val("cfgScale"));}return lines.join(" \\\n");
+}
+function syncConfigStats(){
+  const total=(+val("batches")||0)*(+val("batchSize")||0), alert=document.getElementById("paramAlert"), status=document.getElementById("validationStatus"), sub=document.getElementById("validationSub"); document.getElementById("sampleCount").textContent=total||"—"; document.getElementById("stepCount").textContent=val("timesteps")||"—";
+  let text="配置有效：预计每个输入 specification 生成 "+total+" 个样本。",cls="",state="就绪",detail="可导出 YAML 并使用预验证运行";
+  if(+val("linkMin")>+val("linkMax")){text="Linker 范围无效：最短长度不能大于最长长度。";cls="error-state";state="需修正";detail="检查 linker 长度";}else if(+val("partialT")>0&&(+val("partialT")<2||+val("partialT")>15)){text="partial_t 为 "+val("partialT")+" Å。文档建议从约 2 Å 逐步增加，常用范围约 5–15 Å。";cls="warn-state";state="注意";detail="partial diffusion 值需审查";}else if(!FRAG.length){text="未载入结构：可以先设置运行参数；载入后将检查 contig、原子选择和批量数量。";state="等待结构输入";detail="配置将在载入后检查";}else if(!rulesToYAML().length){text="尚未固定 motif 原子。允许运行，但若需保持配位位点，请在三维视图中建立 select_fixed_atoms。";cls="warn-state";state="约束待定";detail="建议固定关键配位原子";} alert.textContent=text;alert.className="param-alert "+cls;status.textContent=state;sub.textContent=detail;
+}
+
+/* ============ render panels ============ */
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function highlightYAML(y){
+  return esc(y).split("\n").map(l=>{
+    if(l.trim().startsWith("#"))return '<span class="c">'+l+'</span>';
+    l=l.replace(/^(\s*[\w\-]+):/,'<span class="k">$1</span>:');
+    l=l.replace(/: (ALL|BKBN|TIP)$/,': <span class="v">$1</span>');
+    l=l.replace(/(".*?")/,'<span class="v">$1</span>');
+    return l;
+  }).join("\n");
+}
+function refreshPanels(){
+  // meta
+  const totalRes=FRAG.reduce((s,f)=>s+f.residues.length,0);
+  const fixedN=fixedAtomCount();
+  const ligN=FRAG.reduce((s,f)=>s+new Set(f.ligAtoms.map(a=>a.resn+a.resi)).size,0);
+  document.getElementById("metaRow").innerHTML=
+    "<span>片段 <b>"+FRAG.length+"</b></span><span>保留残基 <b>"+totalRes+"</b></span>"+
+    "<span>固定原子 <b class=\"fixed-count\">"+fixedN+"</b></span><span>铀酰离子 <b>"+ligN+"</b></span>";
+  // fragment list
+  const host=document.getElementById("fragList"); host.innerHTML="";
+  FRAG.forEach((f,i)=>{
+    const wrap=document.createElement("div"); wrap.className="frag"+(i===0?" open":"");
+    const head=document.createElement("div"); head.className="frag-head";
+    head.innerHTML='<span class="swatch" style="color:'+f.color+';background:'+f.color+'"></span>'+
+      '<span class="frag-name">'+f.name+'</span>'+
+      '<span class="frag-tag">链 '+f.dispChain+' · '+f.residues.length+' 残基 · 源 '+f.srcChain+'/M'+f.srcModel+'</span>'+
+      '<span class="frag-caret">▶</span>';
+    head.onclick=(e)=>{wrap.classList.toggle("open");};
+    const body=document.createElement("div"); body.className="frag-body";
+    const rl=document.createElement("div"); rl.className="reslist";
+    f.residues.forEach(r=>{
+      const el=document.createElement("span");
+      const atomCount=r.atoms.filter(a=>isAtomFixed({...a,chain:f.dispChain,resi:r.newNum})).length;
+      el.className="res"+(atomCount?" site":"");
+      el.textContent=r.resn+r.newNum+(atomCount?" ·"+atomCount:"");
+      el.title="源残基 "+f.srcChain+r.srcNum+" → "+f.dispChain+r.newNum+"；点击按当前模式添加/取消固定";
+      el.onclick=()=>{
+        const probe={...r.atoms[0],chain:f.dispChain,resi:r.newNum};applySelection(probe);
+      };
+      rl.appendChild(el);
+    });
+    body.appendChild(rl);
+    if(f.ligAtoms.length){
+      const li=document.createElement("div"); li.className="mini"; li.textContent="铀酰位点"; body.appendChild(li);
+      const lb=document.createElement("div"); lb.className="reslist";
+      const el=document.createElement("span"); el.className="res lig";
+      el.textContent="IUM ×"+new Set(f.ligAtoms.map(a=>a.resn+a.resi)).size; lb.appendChild(el);
+      body.appendChild(lb);
+    }
+    wrap.appendChild(head); wrap.appendChild(body); host.appendChild(wrap);
+  });
+  // ribbon
+  const rb=document.getElementById("ribbon"); rb.innerHTML="";
+  const mode=document.querySelector('input[name=mode]:checked').value;
+  FRAG.forEach((f,i)=>{
+    if(i>0){
+      const s=document.createElement("div");
+      if(mode==="break"){s.className="seg brk";s.innerHTML='<span class="seg-len">/0</span>';}
+      else{s.className="seg link";s.innerHTML='<span class="seg-len">'+linkerToken()+'</span><span class="seg-lab">linker</span>';}
+      rb.appendChild(s);
+    }
+    const s=document.createElement("div"); s.className="seg frag";
+    s.style.background=f.color;
+    const fixedN=f.residues.reduce((s,r)=>s+r.atoms.filter(a=>isAtomFixed({...a,chain:f.dispChain,resi:r.newNum})).length,0);
+    s.innerHTML='<span class="seg-len">'+f.residues.length+'</span><span class="seg-lab">'+f.dispChain+(fixedN?' · ★'+fixedN:'')+'</span>';
+    rb.appendChild(s);
+  });
+  // Keep manual YAML edits intact until the user applies or explicitly rebuilds them.
+  if(!yamlDirty)document.getElementById("yamlOut").value=buildYAML();
+  document.getElementById("cmdOut").innerHTML='<span class="c"># RFdiffusion3 CLI · YAML 中保存结构约束；下列参数控制推理与输出</span>\n'+esc(buildCmd());
+  syncConfigStats();
+}
+function refreshAll(writeYaml=true){if(writeYaml&&!yamlDirty&&FRAG.length)writeYAMLFromRules();refreshPanels();applyStyle();}
+
+/* ============ file loading ============ */
+function loadText(text,fname){
+  const isCIF=/\.cif$|\.mmcif$/i.test(fname||"")|| /^data_|_atom_site\./m.test(text)&&!/^ATOM  |^HETATM/m.test(text);
+  const atoms=isCIF?parseCIF(text):parsePDB(text);
+  if(!atoms.length){alert("未能从文件解析出原子记录，请确认是有效的 PDB/CIF。");return;}
+  FRAG=buildFragments(atoms);
+  if(!FRAG.length){alert("未找到蛋白片段。");return;}
+  fixedRules=[]; yamlDirty=false;
+  normalizedPDB=emitNormalizedPDB(FRAG);
+  document.getElementById("veil").classList.add("hide");
+  document.getElementById("viewTools").style.display="flex";
+  document.getElementById("selectDock").hidden=false;
+  document.getElementById("hintPill").style.display="block";
+  document.getElementById("viewMeta").textContent=(fname||"structure")+" · "+FRAG.length+" 片段";
+  renderViewer(); writeYAMLFromRules(); refreshAll(false); syncSelectControls();
+}
+function handleFiles(files){
+  if(!files||!files.length)return;
+  const f=files[0]; const rd=new FileReader();
+  rd.onload=e=>loadText(e.target.result,f.name); rd.readAsText(f);
+}
+/* ============ events ============ */
+const fileEl=document.getElementById("file");
+document.getElementById("loadBtn").onclick=()=>fileEl.click();
+document.getElementById("veilBtn").onclick=()=>fileEl.click();
+fileEl.onchange=e=>handleFiles(e.target.files);
+const host=document.getElementById("viewhost"), veil=document.getElementById("veil");
+["dragenter","dragover"].forEach(ev=>host.addEventListener(ev,e=>{e.preventDefault();veil.classList.add("drag");veil.classList.remove("hide");}));
+["dragleave","drop"].forEach(ev=>host.addEventListener(ev,e=>{e.preventDefault();veil.classList.remove("drag");}));
+host.addEventListener("drop",e=>{if(e.dataTransfer.files.length)handleFiles(e.dataTransfer.files);});
+document.querySelectorAll('.chip-btn[data-style]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.chip-btn[data-style]').forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); curStyle=b.dataset.style; applyStyle();});
+document.getElementById("spinBtn").onclick=function(){spinning=!spinning;this.classList.toggle("on",spinning);viewer&&viewer.spin(spinning?"y":false);};
+document.getElementById("resetBtn").onclick=()=>{viewer&&(viewer.zoomTo(),viewer.render());};
+["mode","bb"].forEach(n=>document.querySelectorAll('input[name='+n+']').forEach(el=>el.onchange=()=>{if(!yamlDirty)writeYAMLFromRules();refreshPanels();}));
+["linkMin","linkMax","ligLock","designName","hotspots","unfixedSeq","partialT","timesteps","recycle","stepScale","noiseScale","gamma0","cfgFeatures","cfgScale","batches","batchSize","checkpoint","outDir","prefix"].forEach(id=>document.getElementById(id).addEventListener("input",()=>{if(!yamlDirty)writeYAMLFromRules();refreshPanels();}));
+["dialect","originStrategy","centerOption","plddt","nonLoopy","redesignSidechains","cfgEnabled","realign","prevalidate","skipExisting","dumpTraj","lowMemory"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{if(!yamlDirty)writeYAMLFromRules();refreshPanels();}));
+// Selection mode controls
+function syncSelectControls(){
+  document.querySelectorAll('#scopeTools [data-scope]').forEach(b=>b.classList.toggle("on",b.dataset.scope===selectScope));
+  document.querySelectorAll('#actionTools [data-action]').forEach(b=>b.classList.toggle("on",b.dataset.action===selectAction));
+  const scopeNames={atom:"原子",residue:"残基 / 分子",backbone:"骨架",chain:"整条链"};
+  const actionNames={add:"添加",remove:"取消"};
+  document.getElementById("hintPill").textContent="选择模式："+actionNames[selectAction]+" · "+scopeNames[selectScope];
+  document.getElementById("selectStatus").textContent=(selectAction==="add"?"点击以固定 ":"点击以取消固定 ")+scopeNames[selectScope]+"；当前共 "+fixedAtomCount()+" 个固定原子。";
+}
+document.querySelectorAll('#scopeTools [data-scope]').forEach(b=>b.onclick=()=>{selectScope=b.dataset.scope;syncSelectControls();});
+document.querySelectorAll('#actionTools [data-action]').forEach(b=>b.onclick=()=>{selectAction=b.dataset.action;syncSelectControls();});
+document.getElementById("clearFixed").onclick=()=>{fixedRules=[];writeYAMLFromRules();refreshAll(false);syncSelectControls();};
+// YAML is intentionally an editable source of truth after Apply.
+document.getElementById("yamlOut").addEventListener("input",()=>{yamlDirty=true;setYamlState("有未应用的 YAML 修改。","err");});
+document.getElementById("applyYaml").onclick=()=>{applyYAMLToRules();syncSelectControls();};
+document.getElementById("resetYaml").onclick=()=>{yamlDirty=false;writeYAMLFromRules();refreshAll(false);};
+function copy(txt,btn){navigator.clipboard.writeText(txt).then(()=>{const t=btn.textContent;btn.textContent="已复制";setTimeout(()=>btn.textContent=t,1200);});}
+document.getElementById("copyYaml").onclick=function(){copy(document.getElementById("yamlOut").value,this);};
+document.getElementById("copyCmd").onclick=function(){copy(buildCmd(),this);};
+function download(txt,fn){const b=new Blob([txt],{type:"text/plain"});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=fn;a.click();URL.revokeObjectURL(u);}
+document.getElementById("dlYaml").onclick=()=>{const n=(document.getElementById("designName").value.trim()||"design").replace(/[^\w\-]/g,"_");download(document.getElementById("yamlOut").value,n+".yaml");};
+document.getElementById("dlPdb").onclick=()=>{const n=(document.getElementById("designName").value.trim()||"design").replace(/[^\w\-]/g,"_");if(!normalizedPDB){alert("请先载入结构。");return;}download(normalizedPDB,n+"_input.pdb");};
+document.getElementById("sampleBtn").onclick=()=>loadText(SAMPLE,"sample_C3.pdb");
+const SAMPLE="MODEL     1\nATOM      1    N ALA A   1      -3.005   5.395   3.751  1.00 43.68           N  \nATOM      2   CA ALA A   1      -3.963   4.568   3.027  1.00 30.83           C  \nATOM      3    C ALA A   1      -5.352   4.571   3.684  1.00 28.43           C  \nATOM      4    O ALA A   1      -5.498   4.868   4.873  1.00 31.07           O  \nATOM      5   CB ALA A   1      -3.429   3.139   2.869  1.00 31.00           C  \nATOM      6    N LEU A   2      -6.365   4.244   2.888  1.00 21.45           N  \nATOM      7   CA LEU A   2      -7.758   4.212   3.323  1.00 18.72           C  \nATOM      8    C LEU A   2      -8.015   3.218   4.457  1.00 16.41           C  \nATOM      9    O LEU A   2      -9.034   3.320   5.164  1.00 16.37           O  \nATOM     10   CB LEU A   2      -8.654   3.885   2.129  1.00 18.20           C  \nATOM     11   CG LEU A   2      -8.747   4.982   1.069  1.00 16.17           C  \nATOM     12  CD1 LEU A   2      -9.512   4.492  -0.157  1.00 23.23           C  \nATOM     13  CD2 LEU A   2      -9.401   6.223   1.654  1.00 25.44           C  \nATOM     14    N ASP A   3      -7.108   2.257   4.630  1.00 16.07           N  \nATOM     15   CA ASP A   3      -7.286   1.230   5.647  1.00 15.11           C  \nATOM     16    C ASP A   3      -6.313   1.348   6.817  1.00 15.47           C  \nATOM     17    O ASP A   3      -6.117   0.392   7.566  1.00 16.30           O  \nATOM     18   CB ASP A   3      -7.254  -0.181   5.037  1.00 14.44           C  \nATOM     19   CG ASP A   3      -5.861  -0.643   4.675  1.00 14.56           C  \nATOM     20  OD1 ASP A   3      -4.987   0.212   4.421  1.00 19.01           O  \nATOM     21  OD2 ASP A   3      -5.643  -1.874   4.631  1.00 17.68           O1-\nATOM     22    N CYS A   4      -5.720   2.523   6.999  1.00 16.30           N  \nATOM     23   CA CYS A   4      -4.899   2.722   8.188  1.00 14.30           C  \nATOM     24    C CYS A   4      -5.793   2.848   9.409  1.00 13.25           C  \nATOM     25    O CYS A   4      -6.975   3.180   9.300  1.00 13.39           O  \nATOM     26   CB CYS A   4      -3.973   3.936   8.051  1.00 17.61           C  \nATOM     27   SG CYS A   4      -4.782   5.546   8.133  1.00 20.94           S  \nATOM     28    N ARG A   5      -5.220   2.586  10.577  1.00 13.99           N  \nATOM     29   CA ARG A   5      -5.979   2.581  11.822  1.00 13.56           C  \nATOM     30    C ARG A   5      -6.739   3.884  12.062  1.00 14.07           C  \nATOM     31    O ARG A   5      -7.915   3.861  12.433  1.00 13.53           O  \nATOM     32   CB ARG A   5      -5.059   2.262  13.006  1.00 13.89           C  \nATOM     33   CG ARG A   5      -5.668   2.582  14.355  1.00 13.18           C  \nATOM     34   CD ARG A   5      -4.864   1.980  15.498  1.00 14.91           C  \nATOM     35   NE ARG A   5      -4.987   0.528  15.576  1.00 13.64           N  \nATOM     36   CZ ARG A   5      -5.993  -0.103  16.174  1.00 11.19           C  \nATOM     37  NH1 ARG A   5      -6.020  -1.430  16.197  1.00 13.49           N1+\nATOM     38  NH2 ARG A   5      -6.973   0.596  16.746  1.00 11.80           N  \nATOM     39    N GLU A   6      -6.089   5.019  11.839  1.00 13.63           N  \nATOM     40   CA GLU A   6      -6.707   6.306  12.110  1.00 14.09           C  \nATOM     41    C GLU A   6      -7.939   6.503  11.245  1.00 13.13           C  \nATOM     42    O GLU A   6      -8.975   6.993  11.704  1.00 15.23           O  \nATOM     43   CB GLU A   6      -5.696   7.433  11.873  1.00 21.13           C  \nATOM     44   CG GLU A   6      -6.207   8.829  12.198  1.00 30.91           C  \nATOM     45   CD GLU A   6      -5.139   9.898  12.021  1.00 42.94           C  \nATOM     46  OE1 GLU A   6      -3.949   9.539  11.883  1.00 44.33           O  \nATOM     47  OE2 GLU A   6      -5.491  11.098  12.018  1.00 49.41           O1-\nATOM     48    N ARG A   7      -7.831   6.096   9.986  1.00 12.51           N  \nATOM     49   CA ARG A   7      -8.929   6.278   9.047  1.00 13.35           C  \nATOM     50    C ARG A   7     -10.091   5.354   9.376  1.00 12.01           C  \nATOM     51    O ARG A   7     -11.255   5.768   9.330  1.00 12.38           O  \nATOM     52   CB ARG A   7      -8.472   6.044   7.602  1.00 15.59           C  \nATOM     53   CG ARG A   7      -9.514   6.412   6.549  1.00 22.15           C  \nATOM     54   CD ARG A   7      -9.946   7.873   6.659  1.00 26.29           C  \nATOM     55   NE ARG A   7     -11.325   7.999   7.129  1.00 24.05           N  \nATOM     56   CZ ARG A   7     -11.959   9.157   7.294  1.00 27.73           C  \nATOM     57  NH1 ARG A   7     -11.336  10.299   7.037  1.00 27.09           N1+\nATOM     58  NH2 ARG A   7     -13.216   9.174   7.714  1.00 25.95           N  \nATOM     59    N ILE A   8      -9.787   4.100   9.699  1.00 10.73           N  \nATOM     60   CA ILE A   8     -10.854   3.166  10.059  1.00 10.49           C  \nATOM     61    C ILE A   8     -11.557   3.633  11.338  1.00  9.98           C  \nATOM     62    O ILE A   8     -12.781   3.599  11.428  1.00 10.64           O  \nATOM     63   CB ILE A   8     -10.358   1.707  10.213  1.00 10.46           C  \nATOM     64  CG1 ILE A   8      -9.814   1.197   8.873  1.00 11.91           C  \nATOM     65  CG2 ILE A   8     -11.486   0.809  10.722  1.00 10.67           C  \nATOM     66  CD1 ILE A   8      -9.155  -0.160   8.978  1.00 13.50           C  \nATOM     67    N GLU A   9     -10.789   4.102  12.320  1.00 10.40           N  \nATOM     68   CA GLU A   9     -11.401   4.599  13.551  1.00 11.56           C  \nATOM     69    C GLU A   9     -12.380   5.737  13.271  1.00 11.55           C  \nATOM     70    O GLU A   9     -13.492   5.752  13.798  1.00 11.45           O  \nATOM     71   CB GLU A   9     -10.332   5.048  14.550  1.00 12.41           C  \nATOM     72   CG GLU A   9      -9.530   3.905  15.142  1.00 11.86           C  \nATOM     73   CD GLU A   9      -8.486   4.373  16.138  1.00 16.45           C  \nATOM     74  OE1 GLU A   9      -8.547   5.552  16.555  1.00 25.43           O  \nATOM     75  OE2 GLU A   9      -7.615   3.570  16.526  1.00 14.03           O1-\nATOM     76    N LYS A  10     -11.990   6.670  12.410  1.00 11.83           N  \nATOM     77   CA LYS A  10     -12.879   7.773  12.063  1.00 12.65           C  \nATOM     78    C LYS A  10     -14.108   7.254  11.315  1.00 13.07           C  \nATOM     79    O LYS A  10     -15.232   7.678  11.593  1.00 15.26           O  \nATOM     80   CB LYS A  10     -12.129   8.812  11.233  1.00 15.93           C  \nATOM     81   CG LYS A  10     -12.964  10.017  10.833  1.00 21.43           C  \nATOM     82   CD LYS A  10     -13.447  10.798  12.042  1.00 25.45           C  \nATOM     83   CE LYS A  10     -14.052  12.131  11.615  1.00 30.09           C  \nATOM     84   NZ LYS A  10     -14.863  12.010  10.368  1.00 34.40           N1+\nATOM     85    N ASP A  11     -13.902   6.328  10.380  1.00 12.00           N  \nATOM     86   CA ASP A  11     -15.016   5.723   9.639  1.00 12.65           C  \nATOM     87    C ASP A  11     -16.033   5.103  10.618  1.00 13.15           C  \nATOM     88    O ASP A  11     -17.251   5.213  10.435  1.00 13.11           O  \nATOM     89   CB ASP A  11     -14.531   4.583   8.725  1.00 14.83           C  \nATOM     90   CG ASP A  11     -13.660   5.024   7.569  1.00 18.62           C  \nATOM     91  OD1 ASP A  11     -13.650   6.218   7.208  1.00 17.76           O  \nATOM     92  OD2 ASP A  11     -12.998   4.122   6.989  1.00 18.06           O1-\nATOM     93    N ASP A  12     -18.022   7.765  12.552  1.00 12.85           N  \nATOM     94   CA ASP A  12     -18.979   8.416  11.658  1.00 13.20           C  \nATOM     95    C ASP A  12     -20.163   7.498  11.379  1.00 13.06           C  \nATOM     96    O ASP A  12     -21.318   7.936  11.385  1.00 13.85           O  \nATOM     97   CB ASP A  12     -18.323   8.781  10.315  1.00 16.66           C  \nATOM     98   CG ASP A  12     -17.345   9.932  10.421  1.00 22.60           C  \nATOM     99  OD1 ASP A  12     -17.349  10.642  11.448  1.00 25.19           O  \nATOM    100  OD2 ASP A  12     -16.575  10.129   9.457  1.00 30.08           O1-\nATOM    101    N LEU A  13     -19.882   6.222  11.134  1.00 12.92           N  \nATOM    102   CA LEU A  13     -20.958   5.288  10.819  1.00 12.33           C  \nATOM    103    C LEU A  13     -21.885   5.052  12.010  1.00 12.51           C  \nATOM    104    O LEU A  13     -23.095   4.904  11.843  1.00 13.04           O  \nATOM    105   CB LEU A  13     -20.418   3.957  10.292  1.00 12.54           C  \nATOM    106   CG LEU A  13     -21.552   3.049   9.824  1.00 16.70           C  \nATOM    107  CD1 LEU A  13     -22.259   3.657   8.647  1.00 17.07           C  \nATOM    108  CD2 LEU A  13     -21.084   1.650   9.486  1.00 21.60           C  \nATOM    109    N GLU A  14     -24.385   7.841  12.038  1.00 13.79           N  \nATOM    110   CA GLU A  14     -25.344   7.635  10.962  1.00 15.64           C  \nATOM    111    C GLU A  14     -26.355   6.546  11.310  1.00 14.17           C  \nATOM    112    O GLU A  14     -27.548   6.700  11.065  1.00 17.27           O  \nATOM    113   CB GLU A  14     -24.623   7.274   9.661  1.00 15.28           C  \nATOM    114   CG GLU A  14     -23.773   8.393   9.087  1.00 20.03           C  \nATOM    115   CD GLU A  14     -23.171   8.034   7.745  1.00 28.44           C  \nATOM    116  OE1 GLU A  14     -23.846   7.345   6.955  1.00 27.63           O  \nATOM    117  OE2 GLU A  14     -22.022   8.440   7.480  1.00 38.47           O1-\nATOM    118    N THR A  15     -16.585  -0.551   4.890  1.00  8.51           N  \nATOM    119   CAATHR A  15     -17.037   0.001   3.606  0.61  8.53           C  \nATOM    120    C THR A  15     -18.312  -0.682   3.141  1.00  8.92           C  \nATOM    121    O THR A  15     -19.195  -0.040   2.574  1.00  8.89           O  \nATOM    122   CBATHR A  15     -15.970  -0.053   2.468  0.61  9.62           C  \nATOM    123  CG2ATHR A  15     -14.820   0.920   2.729  0.61  9.96           C  \nATOM    124  OG1ATHR A  15     -15.465  -1.386   2.313  0.61  8.86           O  \nATOM    125    N GLU A  16     -20.997   0.886   5.233  1.00  8.01           N  \nATOM    126   CA GLU A  16     -21.259   2.219   4.694  1.00  8.68           C  \nATOM    127    C GLU A  16     -22.163   2.163   3.466  1.00  8.22           C  \nATOM    128    O GLU A  16     -23.054   2.986   3.322  1.00  9.77           O  \nATOM    129   CB GLU A  16     -19.950   2.938   4.360  1.00  9.45           C  \nATOM    130   CG GLU A  16     -19.184   3.353   5.593  1.00 11.36           C  \nATOM    131   CD GLU A  16     -17.761   3.788   5.289  1.00 14.66           C  \nATOM    132  OE1 GLU A  16     -17.146   4.438   6.166  1.00 16.17           O  \nATOM    133  OE2 GLU A  16     -17.242   3.473   4.190  1.00 15.15           O1-\nATOM    134    N GLY A  17     -21.941   1.196   2.584  1.00  7.89           N  \nATOM    135   CA GLY A  17     -22.780   1.052   1.404  1.00  8.58           C  \nATOM    136    C GLY A  17     -24.205   0.687   1.777  1.00  8.50           C  \nATOM    137    O GLY A  17     -25.158   1.252   1.244  1.00  8.91           O  \nATOM    138    N THR A  18     -25.712   1.405   4.544  1.00  9.67           N  \nATOM    139   CA THR A  18     -26.282   2.569   5.217  1.00 10.47           C  \nATOM    140    C THR A  18     -26.603   3.699   4.242  1.00 11.51           C  \nATOM    141    O THR A  18     -27.690   4.303   4.298  1.00 11.43           O  \nATOM    142   CB THR A  18     -25.324   3.067   6.318  1.00 10.88           C  \nATOM    143  CG2 THR A  18     -25.939   4.231   7.059  1.00 12.42           C  \nATOM    144  OG1 THR A  18     -25.067   1.996   7.239  1.00 11.68           O  \nHETATM  244   O1 IUM A  31     -22.206   8.770   4.356  0.33 14.65           O  \nHETATM  245   O2 IUM A  31     -21.869   5.395   5.546  0.33 12.32           O  \nHETATM  246    U IUM A  31     -21.997   7.085   4.942  0.33 16.59           U  \nTER\nENDMDL\nMODEL     2\nATOM    247    N ALA A   1      -7.143   3.961  25.293  1.00 43.68           N  \nATOM    248   CA ALA A   1      -7.831   5.003  24.540  1.00 30.83           C  \nATOM    249    C ALA A   1      -8.947   4.440  23.647  1.00 28.43           C  \nATOM    250    O ALA A   1      -8.952   3.256  23.297  1.00 31.07           O  \nATOM    251   CB ALA A   1      -6.828   5.825  23.720  1.00 31.00           C  \nATOM    252    N LEU A   2      -9.893   5.304  23.294  1.00 21.45           N  \nATOM    253   CA LEU A   2     -11.044   4.952  22.469  1.00 18.72           C  \nATOM    254    C LEU A   2     -10.659   4.440  21.080  1.00 16.41           C  \nATOM    255    O LEU A   2     -11.471   3.781  20.405  1.00 16.37           O  \nATOM    256   CB LEU A   2     -11.965   6.165  22.341  1.00 18.20           C  \nATOM    257   CG LEU A   2     -12.690   6.566  23.625  1.00 16.17           C  \nATOM    258  CD1 LEU A   2     -13.437   7.884  23.441  1.00 23.23           C  \nATOM    259  CD2 LEU A   2     -13.641   5.462  24.058  1.00 25.44           C  \nATOM    260    N ASP A   3      -9.435   4.743  20.646  1.00 16.07           N  \nATOM    261   CA ASP A   3      -8.990   4.348  19.317  1.00 15.11           C  \nATOM    262    C ASP A   3      -7.923   3.256  19.325  1.00 15.47           C  \nATOM    263    O ASP A   3      -7.224   3.059  18.332  1.00 16.30           O  \nATOM    264   CB ASP A   3      -8.538   5.562  18.489  1.00 14.44           C  \nATOM    265   CG ASP A   3      -7.180   6.088  18.894  1.00 14.56           C  \nATOM    266  OD1 ASP A   3      -6.778   5.890  20.060  1.00 19.01           O  \nATOM    267  OD2 ASP A   3      -6.515   6.718  18.042  1.00 17.68           O1-\nATOM    268    N CYS A   4      -7.809   2.525  20.428  1.00 16.30           N  \nATOM    269   CA CYS A   4      -6.907   1.379  20.424  1.00 14.30           C  \nATOM    270    C CYS A   4      -7.511   0.258  19.598  1.00 13.25           C  \nATOM    271    O CYS A   4      -8.724   0.205  19.389  1.00 13.39           O  \nATOM    272   CB CYS A   4      -6.573   0.906  21.844  1.00 17.61           C  \nATOM    273   SG CYS A   4      -7.908   0.066  22.719  1.00 20.94           S  \nATOM    274    N ARG A   5      -6.657  -0.645  19.133  1.00 13.99           N  \nATOM    275   CA ARG A   5      -7.084  -1.726  18.253  1.00 13.56           C  \nATOM    276    C ARG A   5      -8.224  -2.557  18.839  1.00 14.07           C  \nATOM    277    O ARG A   5      -9.197  -2.860  18.144  1.00 13.53           O  \nATOM    278   CB ARG A   5      -5.892  -2.619  17.888  1.00 13.89           C  \nATOM    279   CG ARG A   5      -6.290  -3.949  17.283  1.00 13.18           C  \nATOM    280   CD ARG A   5      -5.101  -4.669  16.663  1.00 14.91           C  \nATOM    281   NE ARG A   5      -4.632  -4.036  15.434  1.00 13.64           N  \nATOM    282   CZ ARG A   5      -5.170  -4.246  14.237  1.00 11.19           C  \nATOM    283  NH1 ARG A   5      -4.675  -3.627  13.172  1.00 13.49           N1+\nATOM    284  NH2 ARG A   5      -6.206  -5.075  14.107  1.00 11.80           N  \nATOM    285    N GLU A   6      -8.125  -2.915  20.113  1.00 13.63           N  \nATOM    286   CA GLU A   6      -9.125  -3.766  20.735  1.00 14.09           C  \nATOM    287    C GLU A   6     -10.485  -3.091  20.728  1.00 13.13           C  \nATOM    288    O GLU A   6     -11.513  -3.719  20.459  1.00 15.23           O  \nATOM    289   CB GLU A   6      -8.702  -4.111  22.167  1.00 21.13           C  \nATOM    290   CG GLU A   6      -9.637  -5.064  22.898  1.00 30.91           C  \nATOM    291   CD GLU A   6      -9.127  -5.434  24.283  1.00 42.94           C  \nATOM    292  OE1 GLU A   6      -7.946  -5.152  24.582  1.00 44.33           O  \nATOM    293  OE2 GLU A   6      -9.910  -6.006  25.073  1.00 49.41           O1-\nATOM    294    N ARG A   7     -10.486  -1.793  21.006  1.00 12.51           N  \nATOM    295   CA ARG A   7     -11.734  -1.047  21.078  1.00 13.35           C  \nATOM    296    C ARG A   7     -12.354  -0.879  19.700  1.00 12.01           C  \nATOM    297    O ARG A   7     -13.570  -1.027  19.535  1.00 12.38           O  \nATOM    298   CB ARG A   7     -11.527   0.327  21.726  1.00 15.59           C  \nATOM    299   CG ARG A   7     -12.820   1.083  22.019  1.00 22.15           C  \nATOM    300   CD ARG A   7     -13.753   0.287  22.929  1.00 26.29           C  \nATOM    301   NE ARG A   7     -14.946  -0.172  22.219  1.00 24.05           N  \nATOM    302   CZ ARG A   7     -15.932  -0.869  22.779  1.00 27.73           C  \nATOM    303  NH1 ARG A   7     -15.867  -1.200  24.061  1.00 27.09           N1+\nATOM    304  NH2 ARG A   7     -16.983  -1.233  22.058  1.00 25.95           N  \nATOM    305    N ILE A   8     -11.528  -0.561  18.706  1.00 10.73           N  \nATOM    306   CA ILE A   8     -12.052  -0.416  17.348  1.00 10.49           C  \nATOM    307    C ILE A   8     -12.605  -1.755  16.848  1.00  9.98           C  \nATOM    308    O ILE A   8     -13.674  -1.805  16.246  1.00 10.64           O  \nATOM    309   CB ILE A   8     -11.008   0.147  16.352  1.00 10.46           C  \nATOM    310  CG1 ILE A   8     -10.594   1.562  16.774  1.00 11.91           C  \nATOM    311  CG2 ILE A   8     -11.570   0.145  14.930  1.00 10.67           C  \nATOM    312  CD1 ILE A   8      -9.454   2.117  15.951  1.00 13.50           C  \nATOM    313    N GLU A   9     -11.897  -2.849  17.124  1.00 10.40           N  \nATOM    314   CA GLU A   9     -12.389  -4.161  16.709  1.00 11.56           C  \nATOM    315    C GLU A   9     -13.768  -4.454  17.296  1.00 11.55           C  \nATOM    316    O GLU A   9     -14.666  -4.912  16.591  1.00 11.45           O  \nATOM    317   CB GLU A   9     -11.399  -5.263  17.093  1.00 12.41           C  \nATOM    318   CG GLU A   9     -10.115  -5.239  16.288  1.00 11.86           C  \nATOM    319   CD GLU A   9      -9.155  -6.347  16.677  1.00 16.45           C  \nATOM    320  OE1 GLU A   9      -9.583  -7.280  17.395  1.00 25.43           O  \nATOM    321  OE2 GLU A   9      -7.982  -6.309  16.258  1.00 14.03           O1-\nATOM    322    N LYS A  10     -13.954  -4.153  18.576  1.00 11.83           N  \nATOM    323   CA LYS A  10     -15.252  -4.372  19.205  1.00 12.65           C  \nATOM    324    C LYS A  10     -16.308  -3.454  18.586  1.00 13.07           C  \nATOM    325    O LYS A  10     -17.426  -3.891  18.305  1.00 15.26           O  \nATOM    326   CB LYS A  10     -15.150  -4.152  20.713  1.00 15.93           C  \nATOM    327   CG LYS A  10     -16.449  -4.374  21.468  1.00 21.43           C  \nATOM    328   CD LYS A  10     -16.941  -5.805  21.342  1.00 25.45           C  \nATOM    329   CE LYS A  10     -18.089  -6.067  22.311  1.00 30.09           C  \nATOM    330   NZ LYS A  10     -19.024  -4.908  22.406  1.00 34.40           N1+\nATOM    331    N ASP A  11     -15.953  -2.191  18.357  1.00 12.00           N  \nATOM    332   CA ASP A  11     -16.871  -1.239  17.718  1.00 12.65           C  \nATOM    333    C ASP A  11     -17.345  -1.788  16.357  1.00 13.15           C  \nATOM    334    O ASP A  11     -18.520  -1.669  15.990  1.00 13.11           O  \nATOM    335   CB ASP A  11     -16.178   0.106  17.434  1.00 14.83           C  \nATOM    336   CG ASP A  11     -15.801   0.898  18.667  1.00 18.62           C  \nATOM    337  OD1 ASP A  11     -16.329   0.639  19.767  1.00 17.76           O  \nATOM    338  OD2 ASP A  11     -14.974   1.834  18.501  1.00 18.06           O1-\nATOM    339    N ASP A  12     -19.773  -4.746  16.733  1.00 12.85           N  \nATOM    340   CA ASP A  12     -21.067  -4.267  17.216  1.00 13.20           C  \nATOM    341    C ASP A  12     -21.832  -3.569  16.098  1.00 13.06           C  \nATOM    342    O ASP A  12     -23.039  -3.774  15.934  1.00 13.85           O  \nATOM    343   CB ASP A  12     -20.892  -3.273  18.377  1.00 16.66           C  \nATOM    344   CG ASP A  12     -20.438  -3.930  19.663  1.00 22.60           C  \nATOM    345  OD1 ASP A  12     -20.509  -5.171  19.770  1.00 25.19           O  \nATOM    346  OD2 ASP A  12     -20.019  -3.187  20.576  1.00 30.08           O1-\nATOM    347    N LEU A  13     -21.134  -2.742  15.325  1.00 12.92           N  \nATOM    348   CA LEU A  13     -21.803  -2.006  14.258  1.00 12.33           C  \nATOM    349    C LEU A  13     -22.303  -2.926  13.146  1.00 12.51           C  \nATOM    350    O LEU A  13     -23.367  -2.697  12.573  1.00 13.04           O  \nATOM    351   CB LEU A  13     -20.909  -0.908  13.679  1.00 12.54           C  \nATOM    352   CG LEU A  13     -21.671  -0.049  12.673  1.00 16.70           C  \nATOM    353  CD1 LEU A  13     -22.782   0.696  13.356  1.00 17.07           C  \nATOM    354  CD2 LEU A  13     -20.776   0.916  11.927  1.00 21.60           C  \nATOM    355    N GLU A  14     -25.627  -4.270  14.230  1.00 13.79           N  \nATOM    356   CA GLU A  14     -26.628  -3.219  14.119  1.00 15.64           C  \nATOM    357    C GLU A  14     -27.043  -2.989  12.668  1.00 14.17           C  \nATOM    358    O GLU A  14     -28.225  -2.837  12.374  1.00 17.27           O  \nATOM    359   CB GLU A  14     -26.104  -1.912  14.719  1.00 15.28           C  \nATOM    360   CG GLU A  14     -25.891  -1.956  16.221  1.00 20.03           C  \nATOM    361   CD GLU A  14     -25.483  -0.613  16.789  1.00 28.44           C  \nATOM    362  OE1 GLU A  14     -25.983   0.417  16.298  1.00 27.63           O  \nATOM    363  OE2 GLU A  14     -24.662  -0.588  17.727  1.00 38.47           O1-\nATOM    364    N PHE A  15     -10.829   5.197  13.613  1.00  8.57           N  \nATOM    365   CA PHE A  15     -11.731   5.595  14.677  1.00  8.86           C  \nATOM    366    C PHE A  15     -12.716   6.651  14.189  1.00  8.27           C  \nATOM    367    O PHE A  15     -13.906   6.577  14.494  1.00  9.78           O  \nATOM    368   CB PHE A  15     -10.891   6.103  15.858  1.00 10.12           C  \nATOM    369   CG PHE A  15     -11.690   6.637  17.023  1.00  9.78           C  \nATOM    370  CD1 PHE A  15     -12.541   5.824  17.756  1.00 11.77           C  \nATOM    371  CD2 PHE A  15     -11.548   7.963  17.408  1.00 12.26           C  \nATOM    372  CE1 PHE A  15     -13.261   6.340  18.839  1.00 13.08           C  \nATOM    373  CE2 PHE A  15     -12.247   8.471  18.492  1.00 12.07           C  \nATOM    374   CZ PHE A  15     -13.115   7.666  19.195  1.00 12.69           C  \nATOM    375    N ILE A  16     -15.371   4.858  12.015  1.00  7.71           N  \nATOM    376   CAAILE A  16     -16.337   4.039  12.741  0.53  9.77           C  \nATOM    377    C ILE A  16     -17.309   4.896  13.563  1.00  8.27           C  \nATOM    378    O ILE A  16     -18.495   4.609  13.634  1.00  9.02           O  \nATOM    379   CBAILE A  16     -15.654   2.936  13.610  0.53 10.74           C  \nATOM    380  CG1AILE A  16     -16.674   1.863  13.996  0.53 12.59           C  \nATOM    381  CG2AILE A  16     -14.970   3.524  14.834  0.53 13.20           C  \nATOM    382  CD1AILE A  16     -17.462   1.338  12.823  0.53 14.93           C  \nATOM    383    N THR A  17     -16.812   5.960  14.176  1.00  8.51           N  \nATOM    384   CAATHR A  17     -17.694   6.824  14.973  0.61  8.53           C  \nATOM    385    C THR A  17     -18.670   7.573  14.081  1.00  8.92           C  \nATOM    386    O THR A  17     -19.828   7.769  14.446  1.00  8.89           O  \nATOM    387   CBATHR A  17     -16.945   7.836  15.895  0.61  9.62           C  \nATOM    388  CG2ATHR A  17     -16.236   7.128  17.049  0.61  9.96           C  \nATOM    389  OG1ATHR A  17     -16.006   8.610  15.136  0.61  8.86           O  \nATOM    390    N GLU A  18     -21.266   5.010  13.223  1.00  8.01           N  \nATOM    391   CA GLU A  18     -22.129   4.843  14.391  1.00  8.68           C  \nATOM    392    C GLU A  18     -23.169   5.955  14.487  1.00  8.22           C  \nATOM    393    O GLU A  18     -24.319   5.693  14.807  1.00  9.77           O  \nATOM    394   CB GLU A  18     -21.299   4.776  15.675  1.00  9.45           C  \nATOM    395   CG GLU A  18     -20.521   3.489  15.798  1.00 11.36           C  \nATOM    396   CD GLU A  18     -19.472   3.531  16.896  1.00 14.66           C  \nATOM    397  OE1 GLU A  18     -18.993   2.444  17.293  1.00 16.17           O  \nATOM    398  OE2 GLU A  18     -19.107   4.641  17.356  1.00 15.15           O1-\nHETATM  509   O1 IUM A  33     -25.591   1.992  19.271  0.33 14.65           O  \nHETATM  510   O2 IUM A  33     -23.736   2.572  16.247  0.33 12.32           O  \nHETATM  511    U IUM A  33     -24.630   2.288  17.783  0.33 16.59           U  \nTER\nENDMDL\nEND\n";
+const appShell=document.getElementById("app-shell"),navToggle=document.getElementById("nav-toggle"),navBackdrop=document.getElementById("nav-backdrop");function setNavOpen(open){appShell.classList.toggle("nav-open",open);navToggle.setAttribute("aria-expanded",String(open));navToggle.setAttribute("aria-label",open?"关闭工作流导航":"打开工作流导航")}navToggle.onclick=()=>setNavOpen(!appShell.classList.contains("nav-open"));navBackdrop.onclick=()=>setNavOpen(false);document.querySelectorAll(".sidebar a").forEach(x=>x.addEventListener("click",()=>setNavOpen(false)));document.addEventListener("keydown",e=>{if(e.key==="Escape")setNavOpen(false)});
+/* init */
+
+</script>
+</body>
+</html>

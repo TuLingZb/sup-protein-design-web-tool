@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>骨架设计 — 蛋白设计工作台</title>
+  <style>
+    :root {
+      --bg: oklch(98% 0.005 250);
+      --surface: oklch(100% 0 0);
+      --fg: oklch(22% 0.02 240);
+      --muted: oklch(50% 0.018 240);
+      --border: oklch(90% 0.008 240);
+      --accent: oklch(55% 0.18 240);
+      --accent-soft: oklch(95% 0.03 240);
+      --success: oklch(55% 0.16 145);
+      --warn: oklch(65% 0.16 75);
+      --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      --font-mono: "SF Mono", "Fira Code", ui-monospace, Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; background: var(--bg); color: var(--fg); font: 15px/1.6 var(--font-body); }
+    a { color: inherit; text-decoration: none; }
+
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; padding: 24px 0; background: var(--surface); border-right: 1px solid var(--border); }
+    .sidebar-brand { padding: 0 20px 20px; border-bottom: 1px solid var(--border); font: 600 16px/1.3 var(--font-display); }
+    .sidebar-brand small { display: block; margin-top: 4px; color: var(--muted); font: 400 12px/1.4 var(--font-body); }
+    .sidebar-nav { flex: 1; padding: 12px 0; }
+    .nav-section { margin-bottom: 8px; padding: 0 12px; }
+    .nav-section-title { padding: 8px 8px 6px; color: var(--muted); font: 500 11px/1 var(--font-body); letter-spacing: .08em; text-transform: uppercase; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; color: var(--fg); font-size: 14px; transition: background .15s; }
+    .nav-item:hover { background: var(--accent-soft); }
+    .nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 550; }
+    .step-num { display: grid; width: 20px; height: 20px; place-items: center; flex-shrink: 0; border-radius: 50%; background: var(--border); color: var(--muted); font: 500 11px/1 var(--font-mono); }
+    .nav-item.active .step-num { background: var(--accent); color: white; }
+    .status { width: 8px; height: 8px; margin-left: auto; border-radius: 50%; }
+    .status-todo { background: var(--border); }
+    .status-progress { background: var(--warn); }
+
+    .main { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+    .main-header { display: flex; align-items: center; min-height: 108px; padding: 20px 32px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .breadcrumb { color: var(--muted); font-size: 13px; }
+    .breadcrumb span { margin: 0 6px; }
+    h1 { margin-top: 5px; font: 600 24px/1.15 var(--font-display); letter-spacing: -.02em; }
+    .main-body { flex: 1; padding: clamp(24px, 4vw, 56px) 32px; }
+
+    .tool-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; max-width: 920px; padding: clamp(28px, 4vw, 48px); background: var(--surface); border: 1px solid var(--border); border-radius: 16px; transition: border-color .2s, transform .2s, box-shadow .2s; }
+    .tool-entry + .tool-entry { margin-top: 20px; }
+    .tool-entry:hover { border-color: color-mix(in oklch, var(--accent), var(--border) 60%); box-shadow: 0 14px 32px oklch(25% 0.02 240 / .07); transform: translateY(-2px); }
+    .eyebrow { color: var(--accent); font: 550 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+    .tool-entry h2 { max-width: 18ch; margin: 14px 0 16px; font: 600 clamp(28px, 4vw, 42px)/1.08 var(--font-display); letter-spacing: -.025em; }
+    .tool-entry p { max-width: 60ch; color: var(--muted); font-size: 16px; }
+    .tool-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+    .tool-meta span { padding: 5px 9px; background: var(--accent-soft); color: var(--accent); border-radius: 6px; font: 500 12px/1 var(--font-body); letter-spacing: .02em; }
+    .open-mark { align-self: end; display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: var(--accent); color: white; font: 400 28px/1 var(--font-display); transition: transform .2s; }
+    .tool-entry:hover .open-mark { transform: translate(3px, -3px); }
+
+    @media (max-width: 768px) {
+      .app { display: block; }
+      .sidebar { width: 100%; padding: 14px 0; border-right: 0; border-bottom: 1px solid var(--border); }
+      .sidebar-brand { display: none; }
+      .sidebar-nav { display: flex; overflow-x: auto; padding: 0 12px; }
+      .nav-section { display: flex; margin: 0; padding: 0; }
+      .nav-section-title, .status { display: none; }
+      .nav-item { white-space: nowrap; }
+      .main-header, .main-body { padding-left: 20px; padding-right: 20px; }
+      .tool-entry { grid-template-columns: 1fr; gap: 20px; }
+      .open-mark { align-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-od-id="workflow-sidebar">
+      <div class="sidebar-brand">蛋白设计工作台<small>Protein Design Workbench</small></div>
+      <nav class="sidebar-nav" aria-label="工作流导航">
+        <div class="nav-section">
+          <div class="nav-section-title">概览</div>
+          <a href="index.html" class="nav-item" data-od-id="nav-home">工作流总览</a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-title">设计流程</div>
+          <a href="step-target.html" class="nav-item" data-od-id="nav-step-target"><span class="step-num">1</span>靶点分析<span class="status status-todo"></span></a>
+          <a href="step-scaffold.html" class="nav-item active" data-od-id="nav-step-scaffold"><span class="step-num">2</span>骨架设计<span class="status status-progress"></span></a>
+          <a href="step-sequence.html" class="nav-item" data-od-id="nav-step-sequence"><span class="step-num">3</span>序列优化<span class="status status-todo"></span></a>
+          <a href="step-structure.html" class="nav-item" data-od-id="nav-step-structure"><span class="step-num">4</span>结构预测<span class="status status-todo"></span></a>
+          <a href="step-molecular.html" class="nav-item" data-od-id="nav-step-molecular"><span class="step-num">5</span>分子动力学<span class="status status-todo"></span></a>
+          <a href="step-binding.html" class="nav-item" data-od-id="nav-step-binding"><span class="step-num">6</span>结合分析<span class="status status-todo"></span></a>
+          <a href="step-alignment.html" class="nav-item" data-od-id="nav-step-alignment"><span class="step-num">7</span>序列比对<span class="status status-progress"></span></a>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="main" data-od-id="scaffold-page">
+      <header class="main-header" data-od-id="scaffold-header">
+        <div>
+          <div class="breadcrumb">蛋白设计工作台 <span>›</span> 设计流程 <span>›</span> 骨架设计</div>
+          <h1 data-od-id="scaffold-title">骨架设计</h1>
+        </div>
+      </header>
+      <div class="main-body">
+        <a class="tool-entry" href="chain_alignment_workbench.html" data-od-id="chain-alignment-entry" aria-label="打开 PDB 链复制与骨架对齐工作台">
+          <div>
+            <div class="eyebrow">骨架构建工具</div>
+            <h2>PDB 链复制与骨架对齐工作台</h2>
+            <p>加载 PDB，检查链与残基编号，复制完整链，并按 N、CA、C、O 主链原子执行刚体对齐。计算与导出均在浏览器本地完成。</p>
+            <div class="tool-meta" aria-label="工具能力">
+              <span>PDB 导入与导出</span><span>完整链复制</span><span>主链刚体对齐</span>
+            </div>
+          </div>
+          <span class="open-mark" aria-hidden="true">→</span>
+        </a>
+        <a class="tool-entry" href="pdb_editor_workbench.html" data-od-id="pdb-editor-entry" aria-label="打开 PDB 文件重新编辑工具">
+          <div>
+            <div class="eyebrow">骨架构建工具</div>
+            <h2>PDB 文件重新编辑工具</h2>
+            <p>本地导入 PDB 或 mmCIF 结构，在三维视图中固定或选择残基，删除指定区域、连续重编号、重命名链，并导出编辑后的 PDB 或 mmCIF。</p>
+            <div class="tool-meta" aria-label="工具能力">
+              <span>PDB / mmCIF 导入</span><span>残基选择与删除</span><span>链重命名与重编号</span><span>PDB / mmCIF 导出</span>
+            </div>
+          </div>
+          <span class="open-mark" aria-hidden="true">→</span>
+        </a>
+        <a class="tool-entry" href="rfd3_scaffold_studio.html" data-od-id="rfd3-scaffold-entry" aria-label="打开 RFdiffusion3 骨架输入构建器">
+          <div>
+            <div class="eyebrow">骨架构建工具</div>
+            <h2>RFdiffusion3 骨架输入构建器</h2>
+            <p>导入 PDB 或 CIF 结构，在三维视图中标记固定原子与片段连接方式，实时生成可编辑的 RFdiffusion3 YAML、运行命令与归一化输入 PDB。</p>
+            <div class="tool-meta" aria-label="工具能力">
+              <span>PDB / CIF 导入</span><span>固定原子选择</span><span>YAML 与输入 PDB 导出</span>
+            </div>
+          </div>
+          <span class="open-mark" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
