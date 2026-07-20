@@ -532,7 +532,7 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
     state.hoverRegistered=true;
   }
   function render(fit = true) {
-    if (!state.viewer) state.viewer = $3Dmol.createViewer('viewer', { backgroundColor:'#07100d', antialias:true });
+    if (!state.viewer) state.viewer = $3Dmol.createViewer('viewer', { backgroundColor:'#0d171b', antialias:true });
     state.viewer.clear();
     if (!state.atoms.length) { state.viewer.render(); return; }
     state.viewer.addModel(toPdb(), viewerFormat());
