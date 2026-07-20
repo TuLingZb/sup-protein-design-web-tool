@@ -78,7 +78,7 @@
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:400 16px/1.35 var(--font-body)}button,input,select,textarea{font:inherit}button{min-height:42px;border:1px solid var(--border);border-radius:2px;padding:0 12px;color:var(--fg);background:var(--surface);font-size:14px;font-weight:500;letter-spacing:.02em;cursor:pointer;transition:border-color 150ms ease,background 150ms ease,transform 150ms ease}button:hover:not(:disabled){border-color:var(--fg-2)}button:active:not(:disabled){transform:translateY(1px)}button:disabled{cursor:not-allowed;opacity:.42}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:none;box-shadow:var(--focus-ring)}
 .appbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:24px;min-height:72px;padding:12px clamp(16px,4vw,48px);border-bottom:1px solid var(--fg);background:var(--surface)}.appbar-main{display:flex;min-width:0;align-items:center;gap:16px}.back-link{display:inline-flex;align-items:center;flex:0 0 auto;min-height:32px;padding:0 8px;border-bottom:1px solid var(--fg);color:var(--fg-2);font-size:14px;font-weight:500;letter-spacing:.02em;text-decoration:none}.back-link:before{content:"←";margin-right:8px}.back-link:hover{color:var(--accent);border-color:var(--accent)}.title-stack{min-width:0}.title-stack h1{overflow:hidden;margin:0;color:var(--fg);font:400 clamp(22px,2.3vw,32px)/1.2 var(--font-display);letter-spacing:-.015em;text-overflow:ellipsis;white-space:nowrap}.title-stack p{margin:4px 0 0;color:var(--muted);font-size:14px}.local-state{display:inline-flex;align-items:center;gap:8px;color:var(--fg-2);font:500 12px/1 var(--font-mono);letter-spacing:.08em;white-space:nowrap;text-transform:uppercase}.state-mark{width:6px;height:6px;background:var(--success)}
 .app{height:calc(100dvh - 72px);display:grid;grid-template-columns:minmax(300px,344px) minmax(0,1fr);overflow:hidden;background:var(--bg)}.app>aside{height:calc(100dvh - 72px);min-height:0;padding:24px;overflow-y:auto;overscroll-behavior:contain;border-right:1px solid var(--border);background:var(--surface);scrollbar-color:var(--border) transparent}.app>aside::-webkit-scrollbar{width:8px}.app>aside::-webkit-scrollbar-track{background:transparent}.app>aside::-webkit-scrollbar-thumb{background:var(--border);border:2px solid var(--surface);border-radius:5px}.brand{display:none}.section{position:relative;padding:20px 0 20px 24px;border-bottom:1px solid var(--border-soft)}.section:before{position:absolute;top:24px;bottom:-24px;left:5px;width:1px;background:var(--border);content:""}.section:after{position:absolute;top:24px;left:1px;width:9px;height:9px;border:1px solid var(--fg);border-radius:50%;background:var(--surface);content:""}.section:last-child{border-bottom:0}.section:last-child:before{bottom:20px}.section h2{margin:0 0 12px;color:var(--fg);font:500 16px/1.2 var(--font-display);letter-spacing:.01em}.section h2:after{content:"操作";float:right;color:var(--muted);font:500 11px/1 var(--font-mono);letter-spacing:.08em}.hint{margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.48}label{margin:0 0 4px;color:var(--fg-2);font-size:14px;font-weight:500;letter-spacing:.02em}input,select,textarea{color:var(--fg);border:1px solid var(--border);border-radius:2px;background:var(--surface);padding:9px 12px}textarea{font:12px/1.5 var(--font-mono)}input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:var(--focus-ring)}.upload-zone{min-height:0;padding:12px;border:1px dashed var(--fg-2);border-radius:2px;background:var(--surface);text-align:left}.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--surface)}.upload-zone strong{color:var(--fg);font-size:14px;font-weight:500}.upload-zone span{color:var(--muted);font:12px/1.4 var(--font-body)}.file-meta{color:var(--muted);font:12px/1.5 var(--font-mono)}.row{gap:12px}.btn{border-color:var(--accent);background:var(--accent);color:var(--accent-on);border-radius:2px}.btn:hover:not(:disabled){border-color:var(--accent-hover);background:var(--accent-hover)}.btn.secondary{border-color:var(--border);background:var(--surface);color:var(--fg)}.btn.secondary:hover:not(:disabled){border-color:var(--fg-2);background:var(--surface)}.btn.danger{border-color:var(--danger);background:var(--danger);color:#fff}.btn.danger:hover:not(:disabled){border-color:color-mix(in oklab,var(--danger),#000 15%);background:color-mix(in oklab,var(--danger),#000 15%)}.selected-summary{color:var(--fg-2);font:500 12px/1 var(--font-mono)}.selected-list{max-height:112px}.selected-list:empty:before{color:var(--muted);font-family:var(--font-mono)}.chip{border-color:var(--border);background:var(--surface);color:var(--fg-2);font-family:var(--font-mono)}.selected-chip{border-color:var(--warn);background:color-mix(in oklab,var(--warn),transparent 86%);color:#6b5200}.help{color:var(--muted);font-size:12px}.help code{color:var(--fg-2);font-family:var(--font-mono)}
-.app>main{min-width:0;height:calc(100dvh - 72px);overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:24px;background:oklch(98% .005 250)}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:69px;padding:16px 20px;border:1px solid var(--border);border-bottom:0;border-radius:12px 12px 0 0;background:var(--surface)}#structureName{color:var(--fg);font:600 15px/1.3 var(--font-display)}.subline{color:var(--muted);font-size:13px}.small-btn{min-height:32px;border-color:var(--border);background:var(--surface);color:var(--fg);padding:0 10px;font:500 12px/1 var(--font-body)}.small-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}.app #viewer{min-height:0;border:1px solid var(--border);border-top:0;background:var(--surface)}.empty-card{color:var(--muted)}.empty-card .motif{color:var(--accent);font-family:var(--font-display)}.empty-card h2{color:var(--fg);font:500 20px/1.2 var(--font-display)}.empty-card p{font-size:14px}.app .status{grid-template-columns:repeat(3,auto) 1fr;gap:24px;padding:12px 16px;border:1px solid var(--border);border-top:1px solid var(--border);border-radius:0 0 12px 12px;background:var(--surface)}.stat-label{color:var(--muted);font-family:var(--font-mono)}.stat strong{color:var(--fg);font-family:var(--font-mono)}#message{color:var(--muted);font-size:13px}.app #message.ok{color:var(--success)}.app #message.error{color:var(--danger)}
+.app>main{min-width:0;height:calc(100dvh - 72px);overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:24px;background:oklch(98% .005 250)}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:69px;padding:16px 20px;border:1px solid var(--border);border-bottom:0;border-radius:12px 12px 0 0;background:var(--surface)}#structureName{color:var(--fg);font:600 15px/1.3 var(--font-display)}.subline{color:var(--muted);font-size:13px}.small-btn{min-height:32px;border-color:var(--border);background:var(--surface);color:var(--fg);padding:0 10px;font:500 12px/1 var(--font-body)}.small-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}.app #viewer{min-height:0;border:1px solid var(--border);border-top:0;background:var(--surface)}.empty-card{color:var(--muted)}.empty-card .motif{color:var(--accent);font-family:var(--font-display)}.empty-card h2{color:var(--fg);font:500 20px/1.2 var(--font-display)}.empty-card p{font-size:14px}.app .status{grid-template-columns:repeat(3,auto) 1fr;gap:24px;padding:12px 16px;border:1px solid var(--border);border-top:1px solid var(--border);border-radius:0 0 12px 12px;background:var(--surface)}.stat-label{color:var(--muted);font-family:var(--font-mono)}.stat strong{color:var(--fg);font-family:var(--font-mono)}#message{color:var(--muted);font-size:13px}.app #message.ok{color:var(--success)}.app #message.error{color:var(--danger)}.geometry-note{margin:0 0 14px;padding:10px 12px;border-left:3px solid var(--accent);background:#f3f7fe;color:var(--fg-2);font-size:12px;line-height:1.5}.geometry-note strong{color:var(--fg)}.geometry-note code{font-family:var(--font-mono);font-size:.92em}
 @media(max-width:980px){html,body{height:auto;overflow:auto}.appbar{grid-template-columns:1fr}.app{height:auto;min-height:calc(100vh - 72px);grid-template-columns:1fr;overflow:visible}.app>aside{height:auto;max-height:none;overflow:visible;border-right:0;border-bottom:1px solid var(--border)}.app>main{height:680px;padding:16px}.section{padding-left:24px}}@media(max-width:640px){.appbar{gap:12px;padding:12px 16px}.appbar-main{align-items:flex-start}.title-stack h1{white-space:normal;font-size:24px}.local-state{margin-left:40px}.app>aside{padding:16px}.app>main{height:590px;padding:12px}.topbar{align-items:flex-start;flex-direction:column;padding:14px}.view-controls{justify-content:flex-start}.app .status{gap:12px;padding:12px}.app #message{display:none}.row{grid-template-columns:1fr}}
 
 
@@ -90,6 +90,20 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:
 html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;height:100dvh;background:#fff}.workflow-sidebar{width:260px;flex:0 0 260px;display:flex;flex-direction:column;padding:24px 0;background:#fff;border-right:1px solid #d7dde3;overflow-y:auto}.workflow-brand{padding:0 20px 20px;color:#18212a;border-bottom:1px solid #d7dde3;font:650 16px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}.workflow-brand small{display:block;margin-top:4px;color:#5b6670;font:400 12px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}.workflow-nav{flex:1;padding:12px 0}.workflow-section{padding:0 12px;margin-bottom:8px}.workflow-section-title{padding:8px 8px 6px;color:#5b6670;font:500 11px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase}.workflow-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;color:#18212a;font:14px/1.3 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;text-decoration:none}.workflow-item:hover,.workflow-item.active{background:#dceffb;color:#0089d7;text-decoration:none}.workflow-item.active{font-weight:600}.workflow-mark,.workflow-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;flex:0 0 auto}.workflow-mark{border-radius:5px;background:#eaf5fd;color:#0089d7;font:600 10px/1 ui-monospace,monospace}.workflow-num{border-radius:50%;background:#dce2e7;color:#62707c;font:500 11px/1 ui-monospace,monospace}.workflow-item.active .workflow-num{background:#0089d7;color:#fff}.workflow-state{width:8px;height:8px;margin-left:auto;border-radius:50%;flex:0 0 auto}.workflow-state.todo{background:#dce2e7}.workflow-state.progress{background:#d28600}.tool-shell{display:flex;min-width:0;flex:1;flex-direction:column;height:100dvh;overflow:hidden}
 .tool-shell .appbar{flex:0 0 auto}.tool-shell>main{flex:1;min-height:0;height:auto}.tool-shell .app{height:100%;min-height:0}.tool-shell .app>aside{height:100%}.tool-shell .app>main{height:100%}
 @media(max-width:860px){html,body{height:auto;overflow:auto}.workflow-shell{display:block;height:auto}.workflow-sidebar{display:none}.tool-shell{height:auto;min-height:100vh;overflow:visible}.tool-shell>main{min-height:auto}.tool-shell .app{height:auto}.tool-shell .app>aside,.tool-shell .app>main{height:auto}}
+
+/* ---------- RFdiffusion3 viewer treatment ---------- */
+.app>main { background: oklch(98% .005 250); }
+.topbar { min-height: 49px; padding: 12px 16px; background: var(--surface-raised, #fff); }
+#structureName { color: var(--fg); font: 650 13px/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+.subline { color: var(--muted); font-size: 12px; }
+.app #viewer { background: repeating-linear-gradient(0deg, rgba(127,213,244,.035) 0 1px, transparent 1px 34px), repeating-linear-gradient(90deg, rgba(127,213,244,.035) 0 1px, transparent 1px 34px), #0d171b; }
+.app .empty-state { padding: 30px; background: transparent; }
+.app .empty-card .motif { width: 64px; height: 64px; margin: 0 auto 12px; border: 1px solid #61707b; outline: 8px solid rgba(123,159,144,.075); color: #0089df; font-size: 24px; }
+.app .empty-card h2 { color: #e8edf0; font: 600 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; letter-spacing: 0; }
+.app .empty-card p { max-width: 40ch; margin: 12px auto 18px; color: #adb7bd; font-size: 13px; line-height: 1.5; }
+.viewer-upload-btn { min-height: 38px; padding: 9px 14px; border: 1px solid #d7dde3; border-radius: 7px; background: #fff; color: #18212a; font: 550 13px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+.viewer-upload-btn:hover { border-color: #fff; background: #edf4f8; color: #18212a; }
+@media(max-width:640px){.app .empty-card .motif{width:58px;height:58px;margin-bottom:12px;outline-width:8px;font-size:22px}.app .empty-card h2{font-size:17px}.app .empty-card p{font-size:13px}.viewer-upload-btn{min-height:38px;padding:9px 14px;font-size:13px}}
 
 </style>
 </head>
@@ -169,6 +183,29 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
     </section>
 
     <section class="section">
+      <h2>骨架方向翻转</h2>
+      <p class="hint">输入残基编号，或先点击“鼠标选择翻转残基”再在三维视图中逐个点击残基。两种选择会合并；再次点击同一残基可取消待翻转选择。</p>
+      <div class="geometry-note"><strong>安全检查：</strong>每个残基必须恰有一个 <code>N</code> 和一个 <code>C</code> 原子；含替代构象或缺失原子的残基会跳过且不会被修改。翻转成功的残基会以洋红色持续高亮。</div>
+      <label for="flipSpec">残基选择</label>
+      <input id="flipSpec" placeholder="A:10-20, B:4, B:8-10" spellcheck="false" />
+      <div class="selected-summary"><span id="flipSelectedCount">待翻转 0 个残基</span><button class="btn secondary clear-btn" id="clearFlipSelectionBtn" disabled>清除待翻转</button></div>
+      <div class="selected-list" id="flipSelectedList" aria-live="polite"></div>
+      <button class="btn secondary" id="flipPickModeBtn" disabled>鼠标选择翻转残基</button>
+      <button class="btn secondary" id="toggleFlippedHighlightBtn" disabled>隐藏已翻转高亮</button>
+      <button class="btn" id="flipBackboneBtn" disabled>交换 N/C 主链坐标</button>
+    </section>
+
+    <section class="section">
+      <h2>合并链并重新编号</h2>
+      <p class="hint">按文件当前顺序将选中范围合并到一个新链，并从 1 连续编号。例如 <code>A:1-13, B:15-32</code> 改为 <code>E</code> 后得到 E1、E2、E3……。未选择的残基不会修改。</p>
+      <label for="reassignSpec">残基选择</label>
+      <input id="reassignSpec" placeholder="A:1-13, B:15-32" spellcheck="false" />
+      <label for="reassignChain">新链 ID</label>
+      <input id="reassignChain" maxlength="4" placeholder="E" spellcheck="false" />
+      <button class="btn" id="reassignChainBtn" disabled>合并为新链并从 E1 编号</button>
+    </section>
+
+    <section class="section">
       <h2>重命名链 ID</h2>
       <p class="hint">会替换结构中所有与原链 ID 匹配的原子记录。</p>
       <div class="row">
@@ -218,10 +255,12 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
 (() => {
   'use strict';
   const $ = (s) => document.querySelector(s);
-  const state = { atoms: [], structureName: '', viewer: null, style: 'cartoon', fixedRules: [], hoveredAtom: null, hoverRegistered: false };
+  const state = { atoms: [], structureName: '', viewer: null, style: 'cartoon', fixedRules: [], flipTargets: new Map(), flippedResidues: new Map(), showFlippedHighlights: true, flipPickMode: false, hoveredAtom: null, hoverRegistered: false };
   const elements = {
     file: $('#fileInput'), drop: $('#dropZone'), meta: $('#fileMeta'), empty: $('#emptyState'), name: $('#structureName'),
     deleteSpec: $('#deleteSpec'), renumberSpec: $('#renumberSpec'), start: $('#startNumber'), oldChain: $('#oldChain'), newChain: $('#newChain'),
+    flipSpec: $('#flipSpec'), flipBackbone: $('#flipBackboneBtn'), flipPickMode: $('#flipPickModeBtn'), toggleFlippedHighlight: $('#toggleFlippedHighlightBtn'), clearFlipSelection: $('#clearFlipSelectionBtn'), flipSelectedCount: $('#flipSelectedCount'), flipSelectedList: $('#flipSelectedList'),
+    reassignSpec: $('#reassignSpec'), reassignChain: $('#reassignChain'), reassignChainBtn: $('#reassignChainBtn'),
     deleteBtn: $('#deleteBtn'), renumberBtn: $('#renumberBtn'), renameBtn: $('#renameBtn'), exportPdb: $('#exportPdbBtn'), exportCif: $('#exportCifBtn'),
     chains: $('#chainList'), message: $('#message'), atoms: $('#atomCount'), residues: $('#residueCount'), chainCount: $('#chainCount'),
     selectedCount: $('#selectedCount'), selectedList: $('#selectedList'), clearSelection: $('#clearSelectionBtn'), deleteSelected: $('#deleteSelectedBtn'),
@@ -352,6 +391,37 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
     const spec=entries.map(a => `${a.chain || '_'}:${a.resi}${a.icode || ''}`).join(', ');
     elements.deleteSpec.value=spec; elements.renumberSpec.value=spec;
   }
+  function syncFlipInput() {
+    const targets=[...state.flipTargets.values()];
+    elements.flipSpec.value=targets.map(a=>`${a.chain || '_'}:${a.resi}${a.icode || ''}`).join(', ');
+  }
+  function setFlipTargetsFromSpec() {
+    const selections=parseSelection(elements.flipSpec.value);
+    const found=new Map();
+    state.atoms.forEach(atom=>{ if (matches(atom,selections)) found.set(residueKey(atom),normalizeAtom(atom)); });
+    if (!found.size) throw new Error('没有残基匹配该选择。');
+    found.forEach((atom,key)=>state.flipTargets.set(key,atom));
+  }
+  function updateFlipUI() {
+    const targets=[...state.flipTargets.values()];
+    elements.flipSelectedCount.textContent=`待翻转 ${targets.length} 个残基`;
+    elements.clearFlipSelection.disabled=!targets.length;
+    elements.flipPickMode.classList.toggle('active',state.flipPickMode);
+    elements.flipPickMode.textContent=state.flipPickMode ? '结束鼠标选择翻转残基' : '鼠标选择翻转残基';
+    elements.toggleFlippedHighlight.disabled=!state.flippedResidues.size;
+    elements.toggleFlippedHighlight.textContent=state.showFlippedHighlights ? '隐藏已翻转高亮' : '显示已翻转高亮';
+    elements.flipSelectedList.innerHTML=targets.map(atom=>`<button type="button" class="chip selected-chip" data-flip-key="${residueKey(atom)}" title="取消待翻转选择">${residueLabel(atom)} ×</button>`).join('');
+    elements.flipSelectedList.querySelectorAll('[data-flip-key]').forEach(button=>button.addEventListener('click',()=>{
+      state.flipTargets.delete(button.dataset.flipKey); syncFlipInput(); updateFlipUI(); render(false); msg('已取消待翻转残基。');
+    }));
+  }
+  function toggleFlipTarget(atom) {
+    const normalized=normalizeAtom(atom), key=residueKey(normalized);
+    const selected=state.flipTargets.has(key);
+    if (selected) state.flipTargets.delete(key); else state.flipTargets.set(key,normalized);
+    syncFlipInput(); updateFlipUI(); render(false);
+    msg(`${selected ? '已取消待翻转' : '已加入待翻转'} ${residueLabel(normalized)}。`,'ok');
+  }
   function residueLabel(a) { return `${chainDisplay(a.chain)}:${a.resn} ${a.resi}${a.icode || ''}`; }
   function updateSelectionUI() {
     const entries=fixedEntries();
@@ -428,6 +498,23 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
       matched.forEach(atom => addPersistentMarker(atom,color));
       state.viewer.addLabel(`${rule.scope}: ${residueLabel(anchor)}`, {position:{x:anchor.x,y:anchor.y,z:anchor.z}, backgroundColor:ligand?'#431407':'#062f4f', backgroundOpacity:.9, fontColor:'#ffffff', fontSize:12, borderColor:color, borderThickness:2, inFront:true});
     });
+    if (state.showFlippedHighlights) state.flippedResidues.forEach(atom => {
+      const matched=state.atoms.filter(item=>residueKey(item)===residueKey(atom));
+      if (!matched.length) return;
+      const anchor=matched[0], selection=serialSelector(matched), color='#d946ef';
+      state.viewer.setStyle(selection,{stick:{radius:.34,color},sphere:{scale:.62,color}});
+      state.viewer.addStyle(selection,{line:{linewidth:4,color:'#f5d0fe'}});
+      matched.forEach(item=>addPersistentMarker(item,color));
+      state.viewer.addLabel(`已翻转: ${residueLabel(anchor)}`,{position:{x:anchor.x,y:anchor.y,z:anchor.z},backgroundColor:'#701a75',backgroundOpacity:.9,fontColor:'#ffffff',fontSize:12,borderColor:color,borderThickness:2,inFront:true});
+    });
+    state.flipTargets.forEach((atom,key) => {
+      if (state.flippedResidues.has(key)) return;
+      const matched=state.atoms.filter(item=>residueKey(item)===key);
+      if (!matched.length) return;
+      const selection=serialSelector(matched);
+      state.viewer.setStyle(selection,{stick:{radius:.31,color:'#f59e0b'},sphere:{scale:.56,color:'#f59e0b'}});
+      state.viewer.addStyle(selection,{line:{linewidth:3,color:'#fde68a'}});
+    });
     if (state.hoveredAtom) {
       const selection=atomSelector(state.hoveredAtom);
       state.viewer.setStyle(selection, {stick:{radius:.38, color:'#facc15'}, sphere:{scale:.42, color:'#facc15'}});
@@ -436,7 +523,7 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
     }
   }
   function bindModelInteractions() {
-    state.viewer.setClickable({}, true, atom => { if (atom) toggleSelected(atom); });
+    state.viewer.setClickable({}, true, atom => { if (!atom) return; if (state.flipPickMode) toggleFlipTarget(atom); else toggleSelected(atom); });
     // 3Dmol 2.4.2 accepts (selection, hoverable, hoverCallback, unhoverCallback).
     state.viewer.setHoverable({}, true,
       atom => setHoveredAtom(atom),
@@ -462,18 +549,79 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
     updateSelectionUI();
   }
   function setLoaded(enabled) {
-    [elements.deleteBtn,elements.renumberBtn,elements.renameBtn,elements.exportPdb,elements.exportCif,elements.applyYaml].forEach(b=>b.disabled=!enabled);
-    updateSelectionUI();
+    [elements.deleteBtn,elements.renumberBtn,elements.flipBackbone,elements.flipPickMode,elements.toggleFlippedHighlight,elements.reassignChainBtn,elements.renameBtn,elements.exportPdb,elements.exportCif,elements.applyYaml].forEach(b=>b.disabled=!enabled);
+    if (!enabled) state.flipPickMode=false;
+    updateSelectionUI(); updateFlipUI();
   }
   function refresh(note='已更新结构。') { render(); updateInfo(); msg(note,'ok'); }
   function loadText(text, name) {
     let atoms; const looksCif=/^\s*(data_|loop_|_atom_site\.)/mi.test(text) || /\.(cif|mmcif)$/i.test(name);
     try { atoms=looksCif ? parseCif(text) : parsePdb(text); if (!atoms.length && looksCif) atoms=parsePdb(text); } catch(e) { throw new Error('无法解析此文件：'+e.message); }
     if (!atoms.length) throw new Error('未读到 ATOM/HETATM 坐标。请确认使用的是标准 PDB 或含 _atom_site 坐标表的 mmCIF 文件。');
-    state.atoms=atoms; state.fixedRules=[]; state.hoveredAtom=null; state.structureName=name; elements.name.textContent=name; elements.meta.textContent=`${looksCif?'mmCIF':'PDB'} · ${atoms.length.toLocaleString()} 个原子`; elements.empty.style.display='none'; writeYAMLFromRules(); setLoaded(true); refresh('结构已加载。');
+    state.atoms=atoms; state.fixedRules=[]; state.flipTargets.clear(); state.flippedResidues.clear(); state.showFlippedHighlights=true; state.flipPickMode=false; state.hoveredAtom=null; state.structureName=name; elements.name.textContent=name; elements.meta.textContent=`${looksCif?'mmCIF':'PDB'} · ${atoms.length.toLocaleString()} 个原子`; elements.empty.style.display='none'; writeYAMLFromRules(); setLoaded(true); refresh('结构已加载。');
   }
   function readFile(file) { if (!file) return; const reader=new FileReader(); reader.onload=()=>{ try { loadText(String(reader.result),file.name); } catch(e) { msg(e.message,'error'); } }; reader.onerror=()=>msg('读取文件失败。','error'); reader.readAsText(file); }
   function download(text, extension, mime) { const stem=(state.structureName || 'edited_structure').replace(/\.[^.]+$/,'').replace(/[^\w.-]+/g,'_'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.download=`${stem}_edited.${extension}`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),500); }
+  function reassignChainAndRenumber(spec, newChain) {
+    const chain=clean(newChain);
+    if (!chain) throw new Error('请输入新的链 ID。');
+    const selections=parseSelection(spec);
+    const order=[], seen=new Set();
+    state.atoms.forEach(atom=>{
+      if (!matches(atom,selections)) return;
+      const key=residueKey(atom);
+      if (!seen.has(key)) { seen.add(key); order.push({key, atom}); }
+    });
+    if (!order.length) throw new Error('没有残基匹配该选择，未作修改。');
+
+    const assignments=new Map(order.map(({key},index)=>[key,{chain,resi:index+1,icode:''}]));
+    const remapMarkedResidues=(source)=>{
+      const result=new Map();
+      source.forEach((atom,key)=>{
+        const change=assignments.get(key);
+        if (change) result.set(`${change.chain}|${change.resi}||${atom.resn}`,{...normalizeAtom(atom),...change});
+        else result.set(key,atom);
+      });
+      return result;
+    };
+    state.atoms.forEach(atom=>{
+      const change=assignments.get(residueKey(atom));
+      if (change) Object.assign(atom,change);
+    });
+    state.flipTargets=remapMarkedResidues(state.flipTargets);
+    state.flippedResidues=remapMarkedResidues(state.flippedResidues);
+    syncFlipInput(); clearFixedRules(); refresh(`已将 ${order.length} 个残基合并为链 ${chain}，并连续编号为 ${chain}1–${chain}${order.length}。`);
+  }
+
+  function flipBackboneCoordinates() {
+    if (clean(elements.flipSpec.value)) setFlipTargetsFromSpec(); // Merge manual input into the persistent mouse-selected target set.
+    if (!state.flipTargets.size) throw new Error('请通过鼠标选择或输入残基编号后再翻转。');
+    const residueAtoms=new Map();
+    state.flipTargets.forEach((target,key)=>{
+      const atoms=state.atoms.filter(atom=>residueKey(atom)===key);
+      if (atoms.length) residueAtoms.set(key,atoms);
+    });
+    if (!residueAtoms.size) throw new Error('没有残基匹配该选择，未作修改。');
+
+    let flipped=0, skipped=0;
+    residueAtoms.forEach((atoms,key)=>{
+      const representative=atoms[0];
+      if (!isProtein(representative.resn)) { skipped++; return; }
+      const nAtoms=atoms.filter(atom=>clean(atom.name).toUpperCase()==='N');
+      const cAtoms=atoms.filter(atom=>clean(atom.name).toUpperCase()==='C');
+      // A unique N/C pair makes this a coordinate-only, chemically traceable edit.
+      // CA, O, CB, and every other side-chain coordinate remain untouched.
+      if (nAtoms.length!==1 || cAtoms.length!==1) { skipped++; return; }
+      const n=nAtoms[0], c=cAtoms[0];
+      [n.x,c.x]=[c.x,n.x]; [n.y,c.y]=[c.y,n.y]; [n.z,c.z]=[c.z,n.z];
+      state.flippedResidues.set(key,normalizeAtom(representative));
+      flipped++;
+    });
+    if (!flipped) throw new Error('没有可翻转的蛋白残基：每个残基必须恰有一个 N 和一个 C 原子。');
+    state.flipTargets.clear(); syncFlipInput(); updateFlipUI(); clearFixedRules();
+    refresh(`已交换 ${flipped} 个残基的 N/C 坐标；CA、O 与侧链坐标未改变。已翻转残基以洋红色高亮。${skipped ? ` 跳过 ${skipped} 个非蛋白、缺失原子或替代构象残基。` : ''}`);
+  }
+
   function fixedRuleMatches(atom) { return state.fixedRules.some(rule=>ruleMatches(atom,rule)); }
   function clearFixedRules() { state.fixedRules=[]; writeYAMLFromRules(); syncSelectionInputs(); render(false); updateSelectionUI(); }
 
@@ -499,6 +647,11 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
     state.atoms.forEach(a=>{const n=map.get(residueKey(a));if(n!==undefined){a.resi=n;a.icode='';}});
     clearFixedRules(); refresh(`已连续重编号 ${order.length} 个残基（从 ${start} 开始${useMouse?'，使用固定选择':''}）。`);
   } catch(e) { msg(e.message,'error'); } });
+  elements.flipPickMode.addEventListener('click',()=>{ state.flipPickMode=!state.flipPickMode; updateFlipUI(); render(false); msg(state.flipPickMode ? '鼠标翻转选择已开启：点击三维视图中的残基加入或取消待翻转列表。' : '鼠标翻转选择已结束。','ok'); });
+  elements.toggleFlippedHighlight.addEventListener('click',()=>{ state.showFlippedHighlights=!state.showFlippedHighlights; updateFlipUI(); render(false); msg(state.showFlippedHighlights ? '已显示所有已翻转残基高亮。' : '已隐藏所有已翻转残基高亮；坐标与翻转记录未改变。','ok'); });
+  elements.clearFlipSelection.addEventListener('click',()=>{ state.flipTargets.clear(); syncFlipInput(); updateFlipUI(); render(false); msg('已清除待翻转残基。'); });
+  elements.reassignChainBtn.addEventListener('click',()=>{ try { reassignChainAndRenumber(elements.reassignSpec.value,elements.reassignChain.value); } catch(e) { msg(e.message,'error'); } });
+  elements.flipBackbone.addEventListener('click',()=>{ try { flipBackboneCoordinates(); } catch(e) { msg(e.message,'error'); } });
   elements.renameBtn.addEventListener('click',()=>{ const oldC=clean(elements.oldChain.value), newC=clean(elements.newChain.value); if (!newC) {msg('请输入新的链 ID。','error');return;} const count=state.atoms.filter(a=>a.chain===oldC).length; if(!count) { msg(`未找到链 ${chainDisplay(oldC)}。`,'error');return; } state.atoms.forEach(a=>{if(a.chain===oldC)a.chain=newC;}); state.fixedRules=state.fixedRules.map(rule=>({...rule,atom:{...rule.atom,chain:rule.atom.chain===oldC?newC:rule.atom.chain}})); writeYAMLFromRules(); syncSelectionInputs(); refresh(`链 ${chainDisplay(oldC)} 已重命名为 ${newC}。`); });
   elements.exportPdb.addEventListener('click',()=>download(toPdb(),'pdb','chemical/x-pdb'));
   elements.exportCif.addEventListener('click',()=>download(toCif(),'cif','chemical/x-cif'));
