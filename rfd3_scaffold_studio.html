@@ -264,6 +264,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--bone);fon
         </div>
         <div class="view-tools" id="viewTools" style="display:none">
           <button class="chip-btn on" data-style="cartoon">飘带</button>
+          <button class="chip-btn" data-style="cartoon-stick">飘带 + 棒状</button>
           <button class="chip-btn" data-style="stick">棒状</button>
           <button class="chip-btn" data-style="sphere">球棍</button>
           <button class="chip-btn" id="spinBtn">自旋</button>
@@ -695,8 +696,8 @@ function renderViewer(){
 function applyStyle(){
   if(!model)return;
   model.setStyle({},{});
-  if(curStyle==="cartoon"){
-    FRAG.forEach(f=>viewer.setStyle({chain:f.dispChain},{cartoon:{color:f.color},stick:{radius:.08,color:f.color}}));
+  if(curStyle==="cartoon" || curStyle==="cartoon-stick"){
+    FRAG.forEach(f=>viewer.setStyle({chain:f.dispChain},curStyle==="cartoon"?{cartoon:{color:f.color},stick:{radius:.08,color:f.color}}:{cartoon:{color:f.color},stick:{radius:.14,color:f.color}}));
   }else if(curStyle==="stick"){
     FRAG.forEach(f=>viewer.setStyle({chain:f.dispChain},{stick:{radius:.16,color:f.color}}));
   }else{

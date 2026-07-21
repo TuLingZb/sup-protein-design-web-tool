@@ -97,7 +97,7 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
 #structureName { color: var(--fg); font: 650 13px/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
 .subline { color: var(--muted); font-size: 12px; }
 .app #viewer { background: repeating-linear-gradient(0deg, rgba(127,213,244,.035) 0 1px, transparent 1px 34px), repeating-linear-gradient(90deg, rgba(127,213,244,.035) 0 1px, transparent 1px 34px), #0d171b; }
-.app .empty-state { padding: 30px; background: transparent; }
+.app .empty-state { padding: 30px; background: transparent; pointer-events: auto; }
 .app .empty-card .motif { width: 64px; height: 64px; margin: 0 auto 12px; border: 1px solid #61707b; outline: 8px solid rgba(123,159,144,.075); color: #0089df; font-size: 24px; }
 .app .empty-card h2 { color: #e8edf0; font: 600 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; letter-spacing: 0; }
 .app .empty-card p { max-width: 40ch; margin: 12px auto 18px; color: #adb7bd; font-size: 13px; line-height: 1.5; }
@@ -233,6 +233,7 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
       <div class="title-wrap"><div id="structureName">等待导入</div><div class="subline">单击原子选择整段残基 · 拖动旋转 · 滚轮缩放</div></div>
       <div class="view-controls">
         <button class="small-btn active" data-style="cartoon">Cartoon</button>
+        <button class="small-btn" data-style="cartoon-stick">Cartoon + Stick</button>
         <button class="small-btn" data-style="stick">Stick</button>
         <button class="small-btn" data-style="sphere">Sphere</button>
         <button class="small-btn" id="fitBtn">Fit view</button>
@@ -476,9 +477,19 @@ html,body{height:100%;overflow:hidden}.workflow-shell{display:flex;width:100%;he
   function addPersistentMarker(atom, color) {
     state.viewer.addSphere({center:{x:atom.x,y:atom.y,z:atom.z}, radius:.34, color, opacity:1});
   }
+  const RFD3_PALETTE = ['#8fd66f','#5ab0e6','#e6a94c','#d17ae0','#4fd0c0','#e8734a','#c9d24f','#7f8ce0'];
+  function rfd3ColorForChain(chain) {
+    const chains=[...new Set(state.atoms.map(atom=>atom.chain))];
+    return RFD3_PALETTE[Math.max(0,chains.indexOf(chain)) % RFD3_PALETTE.length];
+  }
+
   function applyStyle() {
-    if (state.style === 'cartoon') {
-      state.viewer.setStyle({}, {cartoon:{color:'spectrum'}});
+    if (state.style === 'cartoon' || state.style === 'cartoon-stick') {
+      [...new Set(state.atoms.map(atom=>atom.chain))].forEach(chain=>{
+        const color=rfd3ColorForChain(chain), style={cartoon:{color}};
+        if (state.style === 'cartoon-stick') style.stick={radius:.14,color};
+        state.viewer.setStyle({chain,hetflag:false},style);
+      });
       state.viewer.setStyle({hetflag:true}, {stick:{radius:.18, colorscheme:'Jmol'}});
     } else if (state.style === 'stick') {
       state.viewer.setStyle({}, {stick:{radius:.18, colorscheme:'Jmol'}});
